@@ -1,0 +1,2488 @@
+/* ★ 必須放在 style 的絕對第一行，否則安卓無法下載字體！ */
+@import url('https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@400;700&display=swap');
+
+/* =========================================
+   1. 全域變數與基礎佈局
+========================================= */
+:root {
+    --bg-color: hsl(0, 0%, 10%);
+    --card-bg: #2d2d2d;
+    --primary: #d32f2f;
+    --accent: #ffb300;
+    --text: #f5f5f5;
+    --input-bg: #333;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Microsoft JhengHei", sans-serif;
+    margin: 0;
+    padding: 0;
+    height: calc(var(--vh, 1vh) * 100);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* =========================================
+   2. 導覽列與主視窗
+========================================= */
+header {
+    background: var(--primary);
+    padding: 5px 15px;
+    padding-top: max(5px, env(safe-area-inset-top));
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    z-index: 100;
+    flex-shrink: 0;
+    min-height: 32px;
+}
+
+h1 {
+    margin: 0;
+    font-size: 1rem;
+    text-align: center;
+    letter-spacing: 2px;
+    position: absolute;
+    left: 0;
+    right: 0;
+    pointer-events: none;
+}
+
+#back-btn {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    font-size: 0.8rem;
+    cursor: pointer;
+    padding: 4px 10px;
+    border-radius: 20px;
+    display: none;
+    z-index: 101;
+    margin-left: auto;
+}
+
+main {
+    flex: 1;
+    overflow-y: auto !important;
+    padding: 15px;
+    padding-bottom: env(safe-area-inset-bottom) !important;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.page {
+    display: none;
+    width: 100%;
+    flex: 1;
+    flex-direction: column;
+}
+
+.page.active {
+    display: flex;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 鎖定不需要滾動的特殊頁面 */
+#page-qiuqian {
+    overflow: hidden !important;
+    padding: 5px !important;
+}
+
+/* 釋放問事頁面的滾動能力，精準預留吸底列空間，消除多餘黑洞 */
+#page-simple,
+#page-compare {
+    overflow-y: auto !important;
+    /* ✅ 改為 70px 加上手機底部的安全距離即可，完美貼合 */
+    padding-bottom: calc(70px + env(safe-area-inset-bottom)) !important; 
+}
+
+/* =========================================
+   3. 網格選單與卡片 (首頁、設定等)
+========================================= */
+.grid-menu {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    width: 100%;
+}
+
+.grid-3-col {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    gap: 10px !important;
+}
+
+.grid-3-col>.menu-card {
+    flex: 0 0 calc(33.333% - 7px) !important;
+    max-width: calc(33.333% - 7px) !important;
+    box-sizing: border-box;
+}
+
+.menu-card {
+    background: var(--card-bg);
+    padding: 15px 10px;
+    border-radius: 16px;
+    text-align: center;
+    cursor: pointer;
+    border: 1px solid #444;
+    transition: transform 0.1s;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 110px;
+}
+
+.menu-card:active {
+    transform: scale(0.96);
+    background: #333;
+}
+
+.menu-card h3 {
+    margin: 8px 0 0 0;
+    font-size: 1rem;
+    white-space: nowrap;
+    font-weight: bold;
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    pointer-events: none;
+}
+
+/* 緊湊型卡片 */
+.compact-card {
+    min-height: 85px !important;
+    padding: 10px 5px !important;
+}
+
+.compact-card h3 {
+    font-size: 0.9rem !important;
+    margin-top: 5px !important;
+}
+
+.compact-card .icon-box {
+    width: 40px !important;
+    height: 40px !important;
+}
+
+.compact-card .icon-emoji {
+    font-size: 2.5rem !important;
+}
+
+.settings-compact-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+    padding-bottom: 20px;
+}
+
+.settings-compact-grid .menu-card {
+    min-height: 80px !important;
+    padding: 10px !important;
+    margin: 0 !important;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+.settings-compact-grid .menu-card h3 {
+    font-size: 0.95rem !important;
+    margin: 5px 0 0 0 !important;
+}
+
+.settings-compact-grid .menu-card div[style*="font-size:0.8rem"] {
+    display: none !important;
+}
+
+.settings-compact-grid span {
+    font-size: 1.8rem !important;
+    margin-right: 0 !important;
+    margin-bottom: 5px;
+}
+
+/* 圖示控制 */
+.icon-box {
+    width: 60px;
+    height: 60px;
+    min-height: 60px;
+    flex-shrink: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 5px;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.icon-img {
+    width: 60px;
+    height: 60px;
+    flex-shrink: 0;
+    margin-bottom: 5px;
+    object-fit: cover;
+    object-position: center 15%;
+    border-radius: 50%;
+    border: 2px solid var(--accent);
+    background: #fff;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+
+.icon-emoji {
+    font-size: 3.5rem;
+    line-height: 1;
+    filter: drop-shadow(0 0 5px rgba(255, 255, 255, 0.3));
+}
+
+/* 首頁底部落款 */
+.app-footer {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: auto;
+    padding: 15px 0;
+    color: #888;
+    letter-spacing: 2px;
+}
+
+/* 🌟 開頭畫面的專屬呼吸燈動畫 */
+@keyframes splashBreathe {
+    0%,
+    100% {
+        opacity: 0.6;
+        transform: scale(0.95);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.08);
+    }
+}
+
+.splash-breathe {
+    animation: splashBreathe 2.5s ease-in-out infinite;
+    display: inline-block;
+}
+
+/* =========================================
+   4. 抽籤單頁佈局 (Step Box)
+========================================= */
+.step-box {
+    flex-direction: column !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    padding: 15px !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    justify-content: flex-end !important;
+}
+
+#page-qiuqian .step-box {
+    padding: 5px 10px !important;
+    margin-bottom: 0 !important;
+    justify-content: flex-start !important;
+}
+
+#page-qiuqian .step-box>div:last-child {
+    margin-top: auto !important;
+    width: 100%;
+}
+
+/* 聖像容器自適應 (保留基本相對位置，高度交由終極魔法接管) */
+.step-deity-header {
+    position: relative;
+    text-align: center;
+    width: 100%;
+    padding: 5px;
+    box-sizing: border-box;
+}
+
+/* 🌟 徹底隱藏舊版多餘的第二個聖像容器 */
+#page-qiuqian #step2-deity-img-container {
+    display: none !important;
+}
+
+/* 🌟 小圓圖(Responsive)維持獨立設定 */
+.deity-responsive-img {
+    width: min(55vw, 280px) !important;
+    height: auto !important;
+    aspect-ratio: 1 / 1;
+    border-radius: 50%;
+    border: 3px solid var(--accent);
+    display: block;
+    margin: 0 auto;
+    flex-shrink: 0 !important; /* 圓圖不允許被擠壓 */
+    box-shadow: 0 0 15px rgba(255, 235, 59, 0.4);
+}
+
+/* 確保隱藏時絕對消失 */
+#page-qiuqian .step-deity-header[style*="display: none"],
+#page-qiuqian #step2-deity-img-container[style*="display: none"] {
+    display: none !important;
+}
+
+.step-box>div:not(.step-deity-header) {
+    flex-shrink: 0 !important;
+}
+
+.step-box h2,
+.step-box h3,
+.instruction-text {
+    margin: 2px 0 5px 0 !important;
+    line-height: 1.2 !important;
+    flex-shrink: 0;
+}
+
+.step-box p {
+    margin: 0 0 5px 0 !important;
+}
+
+.step-box button {
+    margin-top: 10px !important;
+    flex-shrink: 0;
+}
+
+/* =========================================
+   5. 表單、輸入框與筊杯顯示
+========================================= */
+input,
+textarea,
+select {
+    width: 100%;
+    background: var(--input-bg);
+    border: 1px solid #555;
+    color: white;
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 1rem;
+    margin-bottom: 15px;
+    box-sizing: border-box;
+}
+
+.form-group {
+    margin-bottom: 15px;
+    text-align: left;
+}
+
+.form-group label {
+    display: block;
+    color: var(--accent);
+    margin-bottom: 5px;
+    font-size: 0.9rem;
+}
+
+.form-group,
+#qiuqian-subject-box,
+#normal-deity-input-box {
+    margin-top: 2px !important;
+    margin-bottom: 5px !important;
+}
+
+.step-box input[type="text"],
+#page-qiuqian input[type="text"] {
+    padding: 8px !important;
+    margin-bottom: 2px !important;
+}
+
+/* 筊杯顯示框 */
+.cup-display {
+    background: #222;
+    color: var(--accent);
+    padding: 5px 10px;
+    border-radius: 12px;
+    text-align: center;
+    font-weight: bold;
+    margin: 5px auto !important;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    visibility: hidden;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    border: none;
+    min-height: 45px !important;
+    height: 45px !important;
+    font-size: 1.1rem !important;
+}
+
+.cup-display.show {
+    opacity: 1;
+    visibility: visible;
+    border: 2px solid var(--accent);
+}
+
+.cup-content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.cup-icon-sm {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+}
+
+.cup-emoji-sm {
+    font-size: 2rem;
+}
+
+@keyframes breathe-warning {
+    0%,
+    100% {
+        opacity: 1;
+        transform: scale(1);
+        filter: brightness(1);
+    }
+    50% {
+        opacity: 0.5;
+        transform: scale(0.98);
+        filter: brightness(1.2);
+    }
+}
+
+.rejection-blink {
+    animation: breathe-warning 0.8s ease-in-out 3;
+}
+
+/* 搖動動畫 */
+.shake-anim {
+    will-change: transform;
+    animation: shake 0.5s cubic-bezier(.36, .07, .19, .97) infinite both;
+    transform-origin: center bottom;
+}
+
+@keyframes shake {
+    0%,
+    100% {
+        transform: rotate(0deg);
+    }
+    25% {
+        transform: rotate(-10deg);
+    }
+    75% {
+        transform: rotate(10deg);
+    }
+}
+
+/* 純 CSS 幾何筊杯與擲筊動畫 */
+.css-cup {
+    display: inline-block;
+    background: #d32f2f;
+    border-radius: 50% 0 50% 0;
+    box-shadow: inset -3px -3px 5px rgba(0, 0, 0, 0.3), 2px 2px 4px rgba(0, 0, 0, 0.5);
+    margin: 0 4px;
+    vertical-align: middle;
+}
+
+.cup-up {
+    transform: rotate(-45deg);
+    background: #ffb300;
+}
+
+.cup-down {
+    transform: rotate(135deg);
+}
+
+.anim-tossing {
+    animation: tossCupAnim 0.6s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+@keyframes tossCupAnim {
+    0% {
+        transform: translateY(0) rotateX(0deg) scale(1);
+    }
+    50% {
+        transform: translateY(-40px) rotateX(360deg) scale(1.2);
+    }
+    100% {
+        transform: translateY(0) rotateX(720deg) scale(1);
+    }
+}
+
+/* =========================================
+   6. 按鈕與功能列樣式
+========================================= */
+button.action-btn {
+    background: var(--primary);
+    color: white;
+    border: none;
+    width: 100%;
+    padding: 14px;
+    font-size: 1.1rem;
+    border-radius: 12px;
+    margin-top: 10px;
+    font-weight: bold;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+    transition: all 0.2s;
+}
+
+button.action-btn:active {
+    transform: translateY(2px);
+}
+
+button.action-btn:disabled {
+    background-color: #555;
+    color: #999;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+button.secondary-btn {
+    background: transparent;
+    border: 1px solid #555;
+    color: #ccc;
+    padding: 10px;
+    border-radius: 8px;
+    margin-top: 10px;
+    width: 100%;
+}
+
+/* 🌟 吸底操作列 (整合升級版) */
+.sticky-bottom-bar, .fixed-bottom-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: rgba(26, 26, 26, 0.98);
+    display: flex;
+    gap: 10px;
+    padding: 8px 15px;
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+    box-shadow: 0 -5px 15px rgba(0, 0, 0, 0.5);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    z-index: 1000;
+    box-sizing: border-box;
+}
+
+.sticky-bottom-bar {
+    flex-direction: column;
+}
+
+#btn-toggle-notes {
+    background: #333;
+    color: #fff;
+    border: 1px solid #555;
+    padding: 0 20px;
+    font-weight: bold;
+    white-space: nowrap;
+    transition: all 0.3s;
+}
+
+#btn-save-qiuqian {
+    flex: 1;
+    background: var(--primary);
+    color: white;
+    border: none;
+    font-weight: bold;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+/* 智能捲動按鈕 */
+#smart-scroll-group {
+    position: fixed;
+    bottom: calc(80px + env(safe-area-inset-bottom));
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    z-index: 99;
+    pointer-events: none;
+}
+
+.scroll-fab {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    background: rgba(40, 40, 40, 0.85);
+    border: 2px solid var(--accent);
+    color: var(--accent);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.5rem;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    cursor: pointer;
+    transition: all 0.3s ease, transform 0.3s;
+    opacity: 0;
+    pointer-events: none;
+    transform: scale(0.8);
+}
+
+.scroll-fab.show {
+    opacity: 1;
+    pointer-events: auto;
+    transform: scale(1);
+}
+
+@keyframes double-bounce {
+    0%,
+    100% {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: translateY(5px) scale(1);
+        opacity: 0.7;
+    }
+}
+
+.scroll-fab.hint-down.show {
+    animation: double-bounce 1.5s infinite;
+}
+
+/* 模式與標籤按鈕 */
+.mode-btn-group {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.mode-btn {
+    flex: 1;
+    padding: 10px;
+    background: #333;
+    border: 1px solid #555;
+    border-radius: 8px;
+    color: #aaa;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+}
+
+.mode-btn.active {
+    background: #d32f2f;
+    color: white;
+    border-color: #ff5252;
+    box-shadow: 0 0 8px rgba(244, 67, 54, 0.4);
+    font-weight: bold;
+}
+
+.tab-group {
+    display: flex;
+    gap: 5px;
+    background: #111;
+    padding: 5px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    border: 1px solid #444;
+}
+
+.tab-btn {
+    flex: 1;
+    padding: 8px 0;
+    text-align: center;
+    color: #888;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.2s;
+}
+
+.tab-btn.active {
+    background: var(--accent);
+    color: #000;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+/* =========================================
+   7. 專屬頁面客製化 (選神、比較、問事)
+========================================= */
+#page-select-deity {
+    height: 100%;
+    margin-top: -10px !important;
+}
+
+#page-select-deity>h3:first-child {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+}
+
+#page-select-deity>div[style*="text-align: right"] {
+    margin-top: 5px !important;
+    margin-bottom: 5px !important;
+}
+
+#btn-temp-deity-bottom {
+    position: fixed;
+    bottom: max(15px, env(safe-area-inset-bottom));
+    left: 5%;
+    width: 90%;
+    margin: 0 !important;
+    z-index: 100;
+}
+
+/* 🌟 讓「選神明」頁面統一採用 3 欄緊湊排版 */
+#deity-selection-list {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    justify-content: flex-start !important;
+    gap: 10px !important;
+}
+
+#page-select-deity .grid-menu {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 10px !important;
+}
+
+#page-select-deity .menu-card {
+    min-height: 85px !important;
+    padding: 10px 5px !important;
+    font-size: 0.9rem !important;
+}
+
+#deity-selection-list .menu-card h3 {
+    font-size: 0.9rem !important;
+    margin-top: 5px !important;
+}
+
+#deity-selection-list .icon-box {
+    width: 40px !important;
+    height: 40px !important;
+}
+
+#deity-selection-list .icon-emoji {
+    font-size: 2.5rem !important;
+}
+
+#page-compare {
+    width: 100%;
+    min-height: 100%;
+    flex-shrink: 0;
+    flex-grow: 1;
+    box-sizing: border-box;
+    overflow-x: hidden;
+}
+
+#compare-setup.step-box {
+    justify-content: center !important;
+    gap: 5px !important;
+    padding: 10px !important;
+}
+
+#compare-setup h3 {
+    margin: 5px 0 !important;
+    font-size: 1.2rem !important;
+}
+
+#compare-setup input {
+    height: 38px !important;
+}
+
+#compare-setup .compare-row {
+    margin-bottom: 5px !important;
+}
+
+#compare-setup button {
+    margin-top: 5px !important;
+    padding: 8px !important;
+    font-size: 0.95rem !important;
+}
+
+#compare-deity-sel,
+#compare-custom-deity {
+    margin-bottom: 5px !important;
+}
+
+#page-simple button[onclick*="openDeityModal"] {
+    padding: 6px !important;
+}
+
+#simple-global-sub,
+#simple-q-text {
+    padding: 8px !important;
+    margin-bottom: 5px !important;
+}
+
+#simple-action-area {
+    padding: 10px !important;
+}
+
+#page-simple .tab-group,
+#page-simple input {
+    margin-bottom: 8px !important;
+}
+
+#page-simple hr {
+    margin: 10px 0 !important;
+}
+
+#simple-history-list {
+    max-height: 25vh;
+    overflow-y: auto;
+    margin-bottom: 10px !important;
+}
+
+#simple-times-config {
+    margin-bottom: 5px !important;
+}
+
+#simple-times-config span {
+    font-size: 0.85rem !important;
+}
+
+#simple-times-config div {
+    padding: 0px 8px !important;
+}
+
+.records-header-toolbar {
+    display: flex;
+    gap: 8px;
+    padding: 10px 15px;
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid #333;
+    align-items: center;
+}
+
+/* 🌟 強制封印神明管理列表中的圖片大小 */
+#manage-deity-list .list-avatar,
+#manage-deity-list .icon-box {
+    width: 50px !important;
+    height: 50px !important;
+    min-width: 50px !important;
+    flex-shrink: 0 !important;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    border-radius: 8px;
+    background: #222;
+}
+
+#manage-deity-list img {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 50px !important;
+    max-height: 50px !important;
+    object-fit: cover !important;
+    color: transparent !important;
+}
+
+/* =========================================
+   🌟 Step 4 結果區塊：全域清理與合併 (終極破框版)
+========================================= */
+#page-qiuqian #step-4 {
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 10px 0 calc(120px + env(safe-area-inset-bottom)) 0 !important;
+    margin: 0 -20px !important;
+    width: calc(100% + 40px) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+}
+
+#page-qiuqian #step-4-title {
+    font-size: 1.8rem !important;
+    text-shadow: 0 4px 10px rgba(0, 0, 0, 0.6);
+    margin: 15px 0 25px 0 !important;
+    letter-spacing: 2px;
+    text-align: center;
+}
+
+#page-qiuqian #result-display {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start !important;
+    align-items: center;
+    min-height: 45vh;
+    padding: 0 15px !important;
+    margin: 0 auto !important;
+    box-sizing: border-box !important;
+}
+
+#page-qiuqian #result-display img,
+#page-qiuqian #result-display .fortune-slip {
+    margin: 0 auto !important;
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    transform: none !important;
+}
+
+.fortune-slip,
+.fortune-slip * {
+    font-family: "LXGW WenKai TC", "BiauKai", "Kaiti TC", "標楷體", "DFKai-SB", "KaiTi", "TW-Kai", serif !important;
+}
+
+/* 白沙屯 A */
+.fortune-slip {
+    background-color: #fcf9f2;
+    color: #000;
+    width: 100%;
+    max-width: 420px;
+    aspect-ratio: 30 / 75;
+    margin: 15px auto;
+    padding: 4.47% 6.45% 3.71% 6.45%;
+    box-sizing: border-box;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    container-type: inline-size;
+}
+
+.slip-inner-border {
+    border: 2px solid #000;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+}
+
+.slip-header {
+    height: 9.5%;
+    border-bottom: 2px solid #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.slip-header .temple-name {
+    font-size: 12cqw;
+    font-weight: 900;
+    letter-spacing: 1.2cqw;
+}
+
+.slip-body {
+    height: 47.8%;
+    border-bottom: 2px solid #000;
+    display: flex;
+    flex-direction: row-reverse;
+}
+
+.side-col {
+    width: 12%;
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    padding: 2cqw 0;
+}
+
+.right-col {
+    border-left: 1px solid #000;
+    font-size: 4.5cqw;
+    letter-spacing: 0.2em;
+}
+
+.left-col {
+    border-right: 1px solid #000;
+    font-size: 3.2cqw;
+    letter-spacing: 0.1em;
+}
+
+.poem-text-area {
+    width: 76%;
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: space-around;
+    align-items: center;
+    padding: 1.5cqw;
+}
+
+.poem-line {
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    font-size: 20cqw;
+    font-weight: 600;
+    letter-spacing: 1.0cqw;
+}
+
+.slip-interpretations {
+    height: 42.7%;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    direction: rtl;
+}
+
+.slip-interpretations .grid-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1cqw 0;
+}
+
+.slip-interpretations .grid-cell:nth-child(5n) {
+    border-left: none;
+}
+
+.slip-interpretations .grid-cell:nth-last-child(-n+5) {
+    border-bottom: none;
+}
+
+.cell-cat {
+    font-weight: 900;
+    font-size: 3.8cqw;
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    margin-bottom: 1.2cqw;
+}
+
+.cell-val-container {
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5cqw;
+}
+
+.cell-val-line {
+    font-size: 3.2cqw;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+/* 傳統版型 B */
+.fortune-slip.classic {
+    background-color: #fdf5e6;
+    aspect-ratio: 55 / 100;
+    padding: 4%;
+}
+
+.fortune-slip.classic .slip-inner-border {
+    border: 4px double #d32f2f;
+}
+
+.fortune-slip.classic .slip-header {
+    height: 10%;
+    border-bottom: 2px solid #d32f2f;
+    color: #d32f2f;
+}
+
+.fortune-slip.classic .slip-body {
+    height: 55%;
+    border-bottom: 2px solid #d32f2f;
+}
+
+.fortune-slip.classic .poem-text-area {
+    padding: 3cqw;
+    width: 85%;
+}
+
+.fortune-slip.classic .poem-line {
+    font-size: 7cqw;
+    letter-spacing: 0.15em;
+}
+
+.fortune-slip.classic .side-col {
+    width: 15%;
+    border-left: 1px solid #d32f2f;
+    color: #d32f2f;
+    font-size: 4.5cqw;
+}
+
+.fortune-slip.classic .slip-interpretations {
+    height: 35%;
+    padding: 3cqw;
+    display: flex;
+    flex-direction: row-reverse;
+}
+
+.fortune-slip.classic .intent-title-box {
+    width: 12%;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+.fortune-slip.classic .intent-title {
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    border: 2px solid #d32f2f;
+    color: #d32f2f;
+    padding: 1cqw 0.5cqw;
+    font-weight: bold;
+    font-size: 3.8cqw;
+    letter-spacing: 2px;
+}
+
+.fortune-slip.classic .intent-content {
+    width: 88%;
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    font-size: 3.6cqw;
+    line-height: 1.6;
+    height: 100%;
+    padding-right: 2cqw;
+    box-sizing: border-box;
+    overflow-x: auto;
+}
+
+.classic-intent-container {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: flex-start;
+    align-items: flex-start;
+    gap: 4cqw;
+    width: 88%;
+    height: 100%;
+    overflow-x: auto;
+    padding-right: 2cqw;
+    box-sizing: border-box;
+}
+
+.classic-intent-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+}
+
+.classic-i-type {
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    font-weight: bold;
+    font-size: 5cqw;
+    border: 2px solid currentColor;
+    padding: 0.5cqw 1cqw;
+    border-radius: 4px;
+    letter-spacing: 2px;
+    margin-bottom: 2cqw;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.classic-i-text {
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    font-size: 4.8cqw;
+    line-height: 1.6;
+    font-weight: 500;
+    text-align: left;
+}
+
+/* 現代簡約 C */
+.fortune-slip.modern {
+    background-color: #ffffff;
+    color: #333;
+    aspect-ratio: auto;
+    min-height: 300px;
+    padding: 25px;
+    border-radius: 16px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    font-family: -apple-system, BlinkMacSystemFont, "Microsoft JhengHei", sans-serif !important;
+    text-align: center;
+    border: 1px solid #eee;
+}
+
+.fortune-slip.modern .modern-temple {
+    color: var(--primary);
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: 5px;
+    letter-spacing: 2px;
+}
+
+.fortune-slip.modern .modern-lot {
+    color: #888;
+    font-size: 1rem;
+    margin-bottom: 20px;
+}
+
+.fortune-slip.modern .modern-poem {
+    font-size: 1.3rem;
+    font-weight: bold;
+    line-height: 1.8;
+    margin-bottom: 25px;
+    color: #111;
+}
+
+.fortune-slip.modern .modern-intent {
+    background: #f9f9f9;
+    padding: 15px;
+    border-radius: 10px;
+    text-align: left;
+    font-size: 1rem;
+    line-height: 1.6;
+    color: #555;
+}
+
+/* 受旨宮 D */
+.fortune-slip.small-grid {
+    background-color: #f8bccc;
+    max-height: 80vh;
+    max-width: calc(80vh * 60 / 121);
+    aspect-ratio: 60 / 121;
+    height: auto;
+    padding: 2.4% 3.3% 0.8% 3.3%;
+    font-size: clamp(12px, 3.5vw, 18px);
+}
+
+.fortune-slip.small-grid .slip-inner-border {
+    flex-direction: row;
+}
+
+.fortune-slip.small-grid .sg-temple-col {
+    width: 14%;
+    border-right: 2px solid #000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    padding: 3cqw 1cqw;
+    box-sizing: border-box;
+}
+
+.fortune-slip.small-grid .sg-temple-name-vert {
+    display: block;
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    font-size: 5cqw;
+    font-weight: 900;
+    height: 36%;
+    text-align: justify;
+    text-align-last: justify;
+    margin: 0;
+}
+
+.fortune-slip.small-grid .sg-temple-contact {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: center;
+    gap: 0.5cqw;
+    height: 60%;
+    width: 100%;
+}
+
+.fortune-slip.small-grid .sg-contact-line {
+    display: block;
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    font-size: 2.6cqw;
+    font-weight: bold;
+    line-height: 1.2;
+    height: 100%;
+    text-align: justify;
+    text-align-last: justify;
+}
+
+.fortune-slip.small-grid .sg-tcy {
+    text-combine-upright: all;
+    -webkit-text-combine: horizontal;
+    font-family: Arial, Helvetica, sans-serif !important;
+    font-weight: 900;
+}
+
+.fortune-slip.small-grid .sg-main-area {
+    width: 86%;
+    display: flex;
+    flex-direction: column;
+}
+
+.fortune-slip.small-grid .sg-header-row {
+    height: 8.1%;
+    border-bottom: 2px solid #000;
+    display: flex;
+    flex-direction: row;
+}
+
+.fortune-slip.small-grid .sg-header-black {
+    flex: 1;
+    background-color: #222;
+    color: #f8bccc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.fortune-slip.small-grid .sg-header-black .temple-name {
+    display: block;
+    width: 85%;
+    font-size: 8cqw;
+    font-weight: 900;
+    text-align: justify;
+    text-align-last: justify;
+}
+
+.fortune-slip.small-grid .sg-header-blank {
+    width: 15.5%;
+    border-left: 2px solid #000;
+}
+
+.fortune-slip.small-grid .sg-body {
+    flex: 1;
+    display: flex;
+    flex-direction: row-reverse;
+}
+
+.fortune-slip.small-grid .sg-poem-col {
+    width: 45%;
+    border-left: 1px solid #000;
+    display: flex;
+    flex-direction: row-reverse;
+    padding: 2cqw 1cqw;
+    box-sizing: border-box;
+    justify-content: space-between;
+}
+
+.fortune-slip.small-grid .sg-lot-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.fortune-slip.small-grid .sg-lot-num {
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    font-size: 5.8cqw;
+    font-weight: bold;
+    letter-spacing: 2px;
+    margin-top: 2cqw;
+}
+
+.fortune-slip.small-grid .sg-level {
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    font-size: 4.4cqw;
+    font-weight: bold;
+    margin-top: 5cqw;
+}
+
+.fortune-slip.small-grid .sg-poem-lines {
+    display: flex;
+    flex-direction: row-reverse;
+    justify-content: space-evenly;
+    flex: 1;
+    padding-top: 6cqw;
+}
+
+.fortune-slip.small-grid .sg-poem-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.fortune-slip.small-grid .sg-poem-half {
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    font-size: 5.2cqw;
+    font-weight: bold;
+    letter-spacing: 2px;
+}
+
+.fortune-slip.small-grid .sg-intent-col {
+    width: 55%;
+    display: flex;
+    flex-direction: column;
+}
+
+.fortune-slip.small-grid .sg-intent-header {
+    height: 5%;
+    border-bottom: 1px solid #000;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    font-size: 4.0cqw;
+    font-weight: bold;
+}
+
+.fortune-slip.small-grid .sg-intent-grid {
+    flex: 1;
+    display: flex;
+    flex-direction: row-reverse;
+}
+
+.fortune-slip.small-grid .sg-grid-col {
+    flex: 1;
+    border-left: 1px solid #000;
+    display: flex;
+    flex-direction: column;
+}
+
+.fortune-slip.small-grid .sg-grid-col:last-child {
+    border-left: none;
+}
+
+.fortune-slip.small-grid .sg-cell-type {
+    padding: 1.5cqw 0;
+    flex-shrink: 0;
+    border-bottom: 1px solid #000;
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    font-size: 4.0cqw;
+    font-weight: bold;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.fortune-slip.small-grid .sg-cell-content {
+    flex: 1;
+    border-bottom: 1px solid #000;
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    font-size: 3.8cqw;
+    font-weight: 600;
+    line-height: 1.4;
+    padding: 1cqw 0.5cqw;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    text-align: left;
+}
+
+.fortune-slip.small-grid .sg-cell-content:last-child {
+    border-bottom: none;
+}
+
+
+/* =========================================
+   9. 紀錄、清單、對話框組件
+========================================= */
+.list-item {
+    background: var(--card-bg);
+    border: 1px solid #444;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+}
+
+.list-item:active {
+    background: #333;
+}
+
+.list-avatar {
+    width: 60px;
+    height: 60px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-right: 15px;
+}
+
+.list-text {
+    flex: 1;
+}
+
+.list-title {
+    font-weight: bold;
+    font-size: 1.2rem;
+    color: #fff;
+}
+
+.list-sub {
+    font-size: 0.9rem;
+    color: #aaa;
+}
+
+.poem-btn {
+    width: 100%;
+    background: var(--card-bg);
+    border: 1px solid #555;
+    color: #fff;
+    padding: 15px;
+    margin-bottom: 8px;
+    border-radius: 8px;
+    text-align: left;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    cursor: pointer;
+    box-sizing: border-box;
+}
+
+.poem-btn:active {
+    background: #444;
+}
+
+.poem-idx {
+    color: var(--accent);
+    font-weight: bold;
+    width: 4.5em;
+    margin-right: 10px;
+    flex-shrink: 0;
+}
+
+.poem-text {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+}
+
+.record-item {
+    background: var(--card-bg);
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    border-left: 4px solid var(--accent);
+    cursor: pointer;
+}
+
+.rec-top {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+}
+
+.rec-date {
+    font-size: 0.8rem;
+    color: #888;
+}
+
+.rec-title {
+    font-weight: bold;
+    color: #fff;
+    font-size: 1.1rem;
+}
+
+.rec-sub {
+    color: #aaa;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.rec-tag {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    margin-right: 8px;
+    box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4);
+    transform: translateY(-1px);
+    vertical-align: middle;
+}
+
+.tag-white {
+    background: #e0e0e0;
+    color: #000;
+    border: 1px solid #ccc;
+}
+
+.tag-yellow {
+    background: #ffb300;
+    color: #000;
+}
+
+.tag-blue {
+    background: #2196F3;
+    color: #fff;
+}
+
+.tag-red {
+    background: #d32f2f;
+    color: #fff;
+}
+
+.rec-header-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+    flex-wrap: wrap;
+}
+
+.rec-deity-name {
+    font-size: 0.95rem;
+    color: #ddd;
+    font-weight: normal;
+    margin-left: 5px;
+}
+
+.rec-main-subject {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #fff;
+    display: block;
+}
+
+.rec-lot-num {
+    color: var(--accent);
+    margin-left: 5px;
+}
+
+.compare-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.table-input-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #444;
+    padding-bottom: 10px;
+}
+
+.res-btn {
+    flex: 1;
+    border: 1px solid #555;
+    background: #333;
+    color: #888;
+    padding: 8px 0;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    text-align: center;
+    margin: 0 2px;
+}
+
+.res-btn.active-saint {
+    background: #d32f2f;
+    color: white;
+    border-color: #d32f2f;
+}
+
+.res-btn.active-laugh {
+    background: #ffb300;
+    color: black;
+    border-color: #ffb300;
+}
+
+.res-btn.active-close {
+    background: #555;
+    color: white;
+    border-color: #777;
+}
+
+.table-idx {
+    width: 50px;
+    color: #aaa;
+    font-size: 0.9rem;
+}
+
+.compare-result-item {
+    border-bottom: 1px solid #444;
+    padding: 10px 0;
+    margin-bottom: 10px;
+}
+
+/* =========================================
+   10. Modal 視窗與小元件
+========================================= */
+.modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+.modal-content {
+    background: var(--card-bg);
+    width: 90%;
+    max-width: 400px;
+    border-radius: 16px;
+    padding: 20px;
+    box-sizing: border-box;
+    position: relative;
+    border: 1px solid var(--accent);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    max-height: 85vh;
+    overflow-y: auto;
+}
+
+.modal-close {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: #fff;
+    font-size: 1.2rem;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#toast-container {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 10px !important;
+    white-space: nowrap !important;
+    width: fit-content !important;
+    max-width: 90vw;
+    position: fixed !important;
+    left: 50% !important;
+    top: 50px !important;
+    background: rgba(50, 50, 50, 0.98);
+    color: #fff;
+    padding: 12px 24px;
+    border-radius: 30px;
+    font-size: 0.95rem;
+    font-weight: bold;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    z-index: 10000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s, transform 0.3s;
+}
+
+#toast-container * {
+    position: static !important;
+    float: none !important;
+    display: inline-block !important;
+    vertical-align: middle !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1.2 !important;
+}
+
+#toast-container br {
+    display: none !important;
+}
+
+#toast-container.show {
+    opacity: 1 !important;
+    visibility: visible !important;
+    transform: translateX(-50%) translateY(10px) !important;
+}
+
+/* 拖曳排序 */
+.sortable-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--card-bg);
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 12px;
+    border: 1px solid #444;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    touch-action: pan-y;
+}
+
+.sortable-ghost {
+    opacity: 0.3;
+    background: var(--primary);
+}
+
+.drag-handle {
+    padding: 0 10px;
+    font-size: 1.5rem;
+    color: #888;
+    cursor: grab;
+}
+
+.drag-handle:active {
+    cursor: grabbing;
+}
+
+@keyframes wiggle {
+    0% { transform: rotate(-2deg); }
+    50% { transform: rotate(2deg); }
+    100% { transform: rotate(-2deg); }
+}
+
+.edit-mode-active {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 10px;
+}
+
+.edit-mode-active .menu-card {
+    animation: wiggle 0.3s infinite;
+    position: relative;
+    cursor: grab;
+}
+
+.edit-mode-active .menu-card::after {
+    content: '☰';
+    position: absolute;
+    top: 5px;
+    right: 8px;
+    color: #888;
+    font-size: 1.2rem;
+}
+
+/* 追問區塊組件 */
+.follow-up-box {
+    margin-top: 20px;
+    border-top: 1px solid #444;
+    padding-top: 15px;
+}
+
+.follow-up-item {
+    background: #252525;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    border-left: 3px solid #666;
+    position: relative;
+    padding-right: 40px;
+}
+
+.fu-q {
+    color: #ddd;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.fu-a {
+    color: var(--accent);
+    text-align: right;
+}
+
+.res-dots-container {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+    margin-top: 5px;
+}
+
+.res-dot {
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    box-sizing: border-box;
+}
+
+.dot-saint {
+    background: #ffb300;
+    color: black;
+    border: 2px solid #ffb300;
+}
+
+.dot-laugh {
+    background: #ffffff;
+    color: black;
+    border: 2px solid #ccc;
+}
+
+.dot-covered {
+    background: #888888;
+    color: white;
+    border: 2px solid #888888;
+}
+
+.fu-dot-sm {
+    width: 24px;
+    height: 24px;
+    font-size: 14px;
+    border-width: 1px;
+}
+
+.main-dot-lg {
+    width: 46px;
+    height: 46px;
+    font-size: 22px;
+}
+
+/* 輔助雜項 */
+.capsule-input-sm {
+    display: flex;
+    align-items: center;
+    background: #000;
+    border-radius: 4px;
+    border: 1px solid #555;
+    height: 24px;
+    overflow: hidden;
+}
+
+.capsule-input-sm button {
+    background: transparent;
+    border: none;
+    color: #888;
+    flex: 1;
+    font-size: 1rem;
+    cursor: pointer;
+}
+
+.capsule-input-sm input {
+    width: 35px;
+    height: 100%;
+    text-align: center;
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 0.75rem;
+}
+
+.readonly-box {
+    background: #222;
+    border: 1px solid #444;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    white-space: pre-wrap;
+    color: #ddd;
+    position: relative;
+}
+
+.detail-section {
+    margin-bottom: 20px;
+    border-bottom: 1px solid #444;
+    padding-bottom: 15px;
+}
+
+.detail-label {
+    font-size: 0.9rem;
+    color: var(--accent);
+    margin-bottom: 5px;
+}
+
+.session-history-container {
+    margin-bottom: 20px;
+}
+
+.session-block {
+    background: rgba(255, 255, 255, 0.05);
+    border-left: 3px solid var(--accent);
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.session-block .q-text {
+    color: #ddd;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.session-block .a-text {
+    color: var(--accent);
+    font-size: 0.95rem;
+    margin-bottom: 5px;
+}
+
+/* =========================================
+   🛠️ 1. 備註區塊優化：防破版與半透明質感
+========================================= */
+#qiuqian-notes-container {
+    width: calc(100vw - 40px) !important; 
+    max-width: 500px !important;
+    margin: 20px auto 0 auto !important;
+    box-sizing: border-box !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    padding: 15px !important;
+    border-radius: 12px !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3) !important;
+    backdrop-filter: blur(5px);
+}
+
+#qiuqian-notes-container input,
+#qiuqian-notes-container textarea {
+    background: rgba(0, 0, 0, 0.5) !important; 
+    border-color: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* =========================================
+   🛠️ 2. 動態相對位置框架 (JS 快照精準版)
+========================================= */
+
+/* 2-1. 容器：由下往上對齊，禁止滾動 */
+#page-qiuqian .step-box:not(#step-4) {
+    flex-direction: column !important;
+    justify-content: flex-end !important; 
+    height: 100% !important;
+    max-height: 100% !important;
+    overflow: hidden !important; 
+    padding: 5px 15px max(15px, env(safe-area-inset-bottom)) 15px !important; 
+    box-sizing: border-box !important;
+}
+
+/* 統合底部容器：絕對不准縮小 */
+.unified-bottom-panel {
+    flex: 0 0 auto !important; 
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    align-items: center;
+    gap: clamp(4px, 1.5svh, 10px) !important;
+}
+
+/* 區塊 2：籤號區 */
+.unified-block-lot {
+    height: clamp(40px, 7svh, 60px) !important; /* 動態高度 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}
+
+/* 區塊 3：筊杯區 */
+.unified-block-cup {
+    height: clamp(45px, 8svh, 60px) !important; /* 動態高度 */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+}
+.unified-block-cup .cup-display {
+    margin: 0 !important;
+    height: 100% !important;
+}
+
+/* 區塊 4：文字提示區 */
+.unified-block-hint {
+    height: clamp(40px, 7svh, 55px) !important; /* 動態高度 */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    text-align: center;
+}
+
+/* 區塊 5：動作區 - 籤筒與按鈕 */
+.unified-block-action {
+    height: clamp(75px, 12svh, 110px) !important; /* 🌟 動態高度：確保按鈕不被壓扁，但也不會過度霸佔空間 */
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+
+
+/* =========================================
+   🌟 4. 按鈕與提示訊息保護 (保留 2-5 與 2-6 的優華)
+========================================= */
+
+/* 統一按鈕規格 (保留自適應字體、強制不換行，防止文字撐爆) */
+#page-qiuqian .action-btn, 
+#page-qiuqian .secondary-btn,
+.fixed-bottom-bar button {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    border-radius: 14px !important;
+    box-sizing: border-box !important;
+}
+
+#page-qiuqian .action-btn:not([style*="none"]), 
+#page-qiuqian .secondary-btn:not([style*="none"]),
+.fixed-bottom-bar button:not([style*="none"]) {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* 確保動作區內的按鈕可以完美填滿空間 */
+.unified-block-action .action-btn,
+.unified-block-action #step-3-btns button {
+    height: 52px !important;
+    margin: 0 !important;
+}
+
+/* 錯誤訊息與提示保留空間，防畫面跳動 */
+#perm-reject-msg,
+#confirm-msg {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    visibility: visible;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+    min-height: 24px;
+    margin: 5px auto !important;
+    flex-shrink: 0 !important;
+}
+
+/* 1. 確保提示文字隱藏時，依然保留高度空間 */
+#perm-reject-msg[style*="none"],
+#confirm-msg[style*="none"] {
+    display: flex !important; /* 🌟 加上這行，覆蓋掉 JS 給的 display: none */
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+/* 2. 確保「擲筊請示」按鈕隱藏時，依然保留高度空間 */
+#btn-perm[style*="none"],
+#btn-perm[style*="display: none"] {
+    display: block !important; /* 🌟 讓按鈕隱形但持續撐住底部空間 */
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
+
+#step-3-btns {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+    height: 100%;
+}
+
+#step-3-btns button {
+    flex: 1; 
+    margin-top: 0 !important;
+    height: 52px !important;
+}
+
+/* =========================================
+   🌟 底部 5 區塊專屬：無縫替換轉場動畫
+========================================= */
+
+/* 定義滑順的淡入與微浮動效果 */
+@keyframes smoothSwap {
+    0% {
+        opacity: 0;
+        transform: translateY(8px) scale(0.98);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* 讓底部控制區的所有元素，在「被 JS 顯示出來 (display: block/flex)」的瞬間，自動播放動畫 */
+.unified-block-lot > *,
+.unified-block-cup > *,
+.unified-block-hint > *,
+.unified-block-action > * {
+    animation: smoothSwap 0.4s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+/* 確保隱藏時不會干擾畫面 */
+.unified-block-lot > [style*="display: none"],
+.unified-block-cup > [style*="display: none"],
+.unified-block-hint > [style*="display: none"],
+.unified-block-action > [style*="display: none"] {
+    animation: none !important;
+}
+
+/* =========================================
+   🌟 針對「籤詩收錄」與全域空間的極致壓縮
+========================================= */
+
+/* 1. 壓縮頂部標題空間 (針對所有頁面的標題) */
+main h2, 
+main h3, 
+.instruction-text {
+    margin-top: 2px !important;
+    margin-bottom: 8px !important;
+    line-height: 1.1 !important;
+}
+
+/* 2. 壓縮「籤詩收錄」的網格間距，讓卡片排得更緊湊 */
+#coll-menu-container,
+.grid-3-col {
+    gap: 8px !important; /* 原本是 10px 或 15px */
+}
+
+/* 3. 壓縮底部吸底操作列 (變薄) */
+.sticky-bottom-bar, 
+.fixed-bottom-bar {
+    padding: 5px 12px !important; /* 縮減上下左右的內邊距 */
+    padding-bottom: max(5px, env(safe-area-inset-bottom)) !important;
+}
+
+/* 4. 進一步允許底部按鈕變得更扁 */
+.sticky-bottom-bar button, 
+.fixed-bottom-bar button,
+#btn-import-custom {
+    min-height: 38px !important; /* 將原本的 40px 保底再往下壓 */
+    height: clamp(38px, 6svh, 48px) !important;
+}
+
+/* 🛡️ 全域防破圖結界 (🌟保留：防止空網址出現裂開圖示) */
+img[src=""], 
+img[src="undefined"], 
+img[src="null"],
+img:not([src]) {
+    display: none !important;
+    opacity: 0 !important;
+}
+
+/* ===================================================
+   🎨 全面優化：Step 1 ~ 3 底部極致壓縮，放大全體神像
+=================================================== */
+
+/* 2. 🗜️ 區塊極致壓縮：將 Step 1、2、3 下方所有控制、筊杯、按鈕區塊的間距縮減 */
+.unified-block-lot,
+.unified-block-cup,
+.unified-block-hint,
+.unified-block-action,
+#step-1 > div:last-child,
+#step-2 > div:last-child,
+#step-3 > div:last-child {
+    gap: 2px !important;         /* 縮減 Flex 項目間的預設空隙 */
+    margin-top: 1px !important;
+    margin-bottom: 1px !important;
+}
+
+/* 3. 📝 文字緊湊化：縮小所有步驟的提示文字、說明字底部的內外距 */
+.instruction-text, 
+#step-1-text, 
+#perm-reject-msg,
+.unified-block-hint p,
+.hint-text {
+    margin-top: 0px !important;
+    margin-bottom: 2px !important;
+    padding: 1px 0 !important;
+    font-size: 0.9rem !important;  /* 微調字型讓比例更優雅 */
+    line-height: 1.2 !important;  /* 緊縮行高 */
+}
+
+/* 4. 🎛️ 元件扁平化：壓縮所有輸入框、選單與按鈕的高度 */
+.step-box input, 
+.step-box select, 
+.step-box button,
+#btn-perm,
+.unified-block-action button {
+    padding: 6px 10px !important; /* 減少上下 Padding */
+    margin-top: 1px !important;
+    margin-bottom: 1px !important;
+}
+
+/* ===================================================
+   🛠️ 專門修正：Step 3 聖杯圖案上下過寬、吃到文字問題
+=================================================== */
+
+/* 5. 確保 Step 3 的筊杯區塊有獨立的足夠高度，且跟下方提示字「強拉安全距離」 */
+.unified-block-cup,
+#page-qiuqian #step-3 .unified-block-cup {
+    min-height: 42px !important;    /* 鎖定固定高度，不讓天生較高的「聖」字撐爆外框 */
+    margin-bottom: 8px !important;  /* 🌟 強制與下方的文字拉開 8px 安全距離，絕不重疊 */
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+/* 6. 修正聖杯文字或圖案內部的行高，確保絕對垂直居中 */
+.unified-block-cup *, 
+#detail-fu-list * {
+    line-height: 1 !important;
+    vertical-align: middle !important;
+}
+
+/* ===================================================
+   🎨 細節優化：按鈕高度還原、底部防裁切、收錄網格壓縮
+=================================================== */
+
+/* 1. 🛡️ 救回問事/比較下方「吸底按鈕」的高度與防裁切 */
+.sticky-bottom-bar {
+    /* 加上 env(safe-area-inset-bottom) 防止 iPhone 底部橫條吃掉按鈕 */
+    padding-bottom: calc(15px + env(safe-area-inset-bottom)) !important; 
+}
+.sticky-bottom-bar .action-btn, 
+.sticky-bottom-bar .secondary-btn {
+    padding: 12px 15px !important; /* 恢復飽滿的點擊高度 */
+    font-size: 1.05rem !important;
+}
+
+/* 🛡️ 恢復 Step 1 「擲筊請示」按鈕的厚度與高度 */
+#btn-perm {
+    height: 52px !important;      /* 🌟 加上這行：強制與 Step 3 按鈕等高 */
+    padding: 12px 15px !important; 
+    font-size: 1.1rem !important;
+    margin-top: 8px !important; 
+}
+
+/* 3. 🗜️ 壓縮「籤詩收錄」的系統按鈕卡片 */
+#coll-menu-container .menu-card {
+    padding: 10px 8px !important;  /* 縮小內距 */
+    min-height: 40px !important;   /* 降低卡片最低高度 */
+    gap: 4px !important;           /* 縮小圖示與文字的間距 */
+}
+#coll-menu-container .menu-card .icon-box {
+    font-size: 1.8rem !important;  /* 圖示稍微縮小 */
+    margin-bottom: 2px !important;
+}
+#coll-menu-container .menu-card h3 {
+    margin: 0 !important;
+    font-size: 0.95rem !important; /* 文字微調 */
+}
+
+/* ===================================================
+   🎛️ 終極版面間距微調控制中心 (涵蓋 Step 1 ~ Step 3)
+=================================================== */
+
+/* ---------------------------------------------------
+   🌟 A. 全局空間榨汁機 (隱藏台詞與提示文字)
+   💡 原理：這些台詞即使隱形也會佔用「行高」與「外距」。
+   如果你覺得神像一直被頂上去，就把這裡的數字調小或設為 0。
+--------------------------------------------------- */
+#step-1-text,
+#perm-reject-msg,
+#draw-instruction,
+#confirm-instruction,
+#confirm-status-text,
+.instruction-text {
+    margin-top: 0px !important;
+    margin-bottom: 2px !important;
+    line-height: 1.1 !important; /* 壓縮字體自帶的隱形行高 */
+}
+
+/* ===================================================
+   🎯 C. Step 1 專屬間距：稟報與請示
+=================================================== */
+/* 1. 三個輸入框的下邊距 (一般求籤系統、神明名稱、問事主旨) */
+#normal-system-input-box, 
+#normal-deity-input-box, 
+#qiuqian-subject-box {
+    margin-bottom: 0px !important;
+}
+/* 2. 請示杯象區塊 */
+#perm-cup {
+    margin-top: 2px !important;
+    margin-bottom: 2px !important;
+}
+/* 3. 擲筊請示按鈕 */
+#btn-perm {
+    margin-top: 5px !important;  /* 與上方元素的距離 */
+    margin-bottom: 5px !important;
+}
+
+
+/* ===================================================
+   🎯 D. Step 2 專屬間距：抽籤
+=================================================== */
+/* 1. 籤筒浮現動畫與號碼區塊 */
+#step-2 .unified-block-lot {
+    margin-top: 2px !important;
+    margin-bottom: 5px !important;
+}
+/* 2. 抽籤/重抽按鈕區塊 */
+#step-2 .unified-block-action {
+    margin-top: 5px !important;
+}
+
+
+/* ===================================================
+   🎯 E. Step 3 專屬間距：擲筊確認
+=================================================== */
+/* 1. 下方整體操作區塊的「上」邊距 
+   💡 終極大絕：如果神像跟文字還是隔很遠，可設負值 (例: -15px) 強制往上吸！ */
+#step-3 .unified-bottom-panel {
+    margin-top: 0px !important; 
+}
+/* 2. 「第幾籤」標題區塊 */
+#step-3 .unified-block-lot {
+    margin-top: 0px !important;
+    margin-bottom: 5px !important; 
+}
+/* 3. 杯象圖案區塊 (推開下方的文字) */
+#page-qiuqian #step-3 .unified-block-cup {
+    margin-top: 2px !important;
+    margin-bottom: 12px !important; 
+}
+/* 4. 「目前：X聖筊」 (往下閃避杯象) */
+#confirm-status-text {
+    margin-top: 10px !important; 
+}
+/* 5. 「請擲筊確認...」提示字 (推開下方的按鈕) */
+#confirm-instruction {
+    margin-bottom: -25px !important; 
+}
+/* 6. 擲筊確認按鈕區塊 */
+#step-3 .unified-block-action {
+    margin-top: 5px !important; 
+}
+
+/* ===================================================
+   🚀 終極大絕招：Step-box 卡片貼底與邊界榨汁
+=================================================== */
+
+/* 1. 榨乾卡片的內外留白，將底部空間全數釋放給神像 */
+#page-qiuqian .step-box:not(#step-4) {
+    margin-bottom: 0px !important;    /* 🌟 原本是 20px，直接歸零，讓卡片貼齊螢幕最底部 */
+    padding-bottom: 10px !important;  /* 🌟 原本是 20px，縮減一半 */
+    padding-top: 10px !important;     /* 順手把頂部的 20px 也縮減，神像頭部可以更高 */
+    
+    /* 為了防止貼底後，iPhone 底部的橫條 (Home Indicator) 擋住你的按鈕，加上這行安全防護 */
+    padding-bottom: calc(10px + env(safe-area-inset-bottom)) !important;
+}
+
+/* 2. 確保下方的操作區塊 (按鈕與文字) 永遠被推到卡片的最最最底層 */
+#step-1 > div:last-child,
+.unified-bottom-panel {
+    margin-top: auto !important; /* 🌟 Flexbox 魔法：自動把上方所有剩餘空間推給神像 */
+}
+
+/* ===================================================
+   🌟 終極自適應神像放大與貼底排版魔法 (突破 svh 限制版)
+=================================================== */
+
+/* 1. 父容器：吃掉所有剩餘空間，並嚴格限制不准被內容撐爆 */
+#page-qiuqian .step-box:not(#step-4) .step-deity-header,
+.step-deity-header {
+    flex: 1 1 0% !important;         /* 霸佔所有剩餘空間 */
+    min-height: 0 !important;        /* 🌟 核心魔法：打破 Flexbox 預設的 intrinsic size，防止撐破 */
+    display: flex !important;
+    justify-content: center !important;
+    align-items: flex-end !important; /* 確保內容永遠貼著底部 */
+    padding-bottom: 0px !important;
+    margin-bottom: 0px !important; 
+    
+    /* 🌟 核心破牆魔法：抵銷 .step-box 左右各 20px 的內距限制，讓圖片可以碰到螢幕邊緣 */
+    width: calc(100% + 40px) !important;
+    margin-left: -20px !important;
+    margin-right: -20px !important;
+}
+
+/* 2. 神像本體：完全依賴父容器的高度，極限貼合 */
+.step-deity-header img,
+.step-deity-header img.big-img,
+#step1-deity-header img,
+#step2-deity-header img,
+#step3-deity-header img {
+    height: 100% !important;         /* 高度完全等於父容器 (剩餘空間) */
+    max-height: 100% !important;     /* 徹底解除所有 svh 限制 */
+    width: 100% !important;          /* 給予填滿寬度的權限 */
+    max-width: 100% !important;
+    object-fit: contain !important;  /* 保持比例縮放，絕不變形 */
+    object-position: bottom !important; /* 圖片在自己的框框內也死命貼底 */
+    
+    /* 視覺裝飾 */
+    border-radius: 12px !important;
+    filter: drop-shadow(0 0 15px rgba(255, 235, 59, 0.6));
+    flex-shrink: 1 !important;
+    box-sizing: border-box !important;
+}
+
+/* =========================================
+   🌊 籤號波浪動畫 (搖晃時顯示)
+========================================= */
+@keyframes waveScale {
+    0%, 100% { transform: scaleY(0.4); opacity: 0.5; }
+    50% { transform: scaleY(1); opacity: 1; }
+}

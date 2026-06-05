@@ -1,0 +1,1892 @@
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <!--<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"> -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="theme-color" content="#1a1a1a">
+    <title>擲筊求籤</title>
+    <!--Netlify使用-->
+    <link rel="manifest" href="fortune_manifest.json" crossorigin="use-credentials">
+    <!--Netlify使用-->
+    <link rel="stylesheet" href="fortune_style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+</head>
+
+<body>
+    <div id="app-splash-screen"
+        style="position:fixed; top:0; left:0; width:100%; height:100%; background:#1a1a1a; z-index:99999; display:flex; justify-content:center; align-items:center; flex-direction:column; transition: opacity 0.6s ease-out, transform 0.6s ease-out;">
+
+        <div id="splash-phase-1" style="display:flex; flex-direction:column; align-items:center; width:100%;">
+            <div class="splash-breathe" style="font-size: 6rem; margin-bottom: 20px;">🏮</div>
+            <div class="splash-breathe"
+                style="color: var(--accent); font-size: 1.5rem; font-weight: bold; letter-spacing: 3px;">誠心準備中...</div>
+        </div>
+
+        <div id="splash-phase-2" style="display:none; flex-direction:column; align-items:center; width:100%;">
+            <div id="splash-logo-2" style="font-size:5rem;">✨</div>
+        </div>
+    </div>
+    <header>
+        <div style="width: 60px;"></div>
+        <h1 id="header-title">擲筊求籤</h1>
+        <button id="back-btn" onclick="goBack()">💾 & ↩</button>
+    </header>
+    <main>
+        <div id="page-home" class="page active">
+            <div id="welcome-msg"
+                style="text-align:center; color:#888; margin-bottom:10px; font-size:0.8rem; margin-top:5px;"></div>
+            <div class="grid-menu" style="margin-bottom: 10px;">
+                <div class="menu-card" onclick="startNormalMode()" style="border: 2px solid #aaa;">
+                    <div class="icon-box"> <span class="icon-emoji">📜</span> </div>
+                    <h3>一般求籤</h3>
+                </div>
+                <div class="menu-card" onclick="goTo('select-deity')"
+                    style="border: 2px solid #ffb300; background: linear-gradient(135deg, #2d2d2d, #3e2723);">
+                    <div class="icon-box"> <span class="icon-emoji">🙏</span> </div>
+                    <h3>神明求籤</h3>
+                </div>
+            </div>
+
+            <div class="grid-menu grid-3-col">
+
+                <div class="menu-card compact-card" onclick="goTo('collection-menu')">
+                    <div class="icon-box"> <span class="icon-emoji">📖</span> </div>
+                    <h3>籤詩收錄</h3>
+                </div>
+
+                <div class="menu-card compact-card" onclick="goTo('simple')">
+                    <div class="icon-box"> <span class="icon-emoji">🌙</span> </div>
+                    <h3>問事擲筊</h3>
+                </div>
+
+                <div class="menu-card compact-card" onclick="openNormalCompare()">
+                    <div class="icon-box"> <span class="icon-emoji">⚖️</span> </div>
+                    <h3>比較擲筊</h3>
+                </div>
+
+                <div class="menu-card compact-card" onclick="goTo('records')">
+                    <div class="icon-box"> <span class="icon-emoji">🗂️</span> </div>
+                    <h3>紀錄查詢</h3>
+                </div>
+                <div class="menu-card compact-card" onclick="goTo('settings')">
+                    <div class="icon-box"> <span class="icon-emoji">⚙️</span> </div>
+                    <h3>設定</h3>
+                </div>
+            </div>
+
+            <div class="app-footer app-footer-compact">
+                <div>心誠則靈✨沐恩洗心</div>
+            </div>
+        </div>
+        <div id="page-sort-deities" class="page">
+            <h3 style="text-align:center; color: var(--accent);">調整神明順序</h3>
+            <div style="text-align:center; color:#888; margin-bottom:15px; font-size:0.9rem;">按住右側 ☰ 即可上下拖曳</div>
+
+            <div id="sortable-deities-list" style="margin: 0 15px; padding-bottom: 20px;"></div>
+
+            <div style="text-align:center; margin-top:10px; padding-bottom: 10px;">
+                <button class="action-btn" onclick="saveDeitiesOrder()">💾 & ↩ </button>
+            </div>
+        </div>
+
+        <div id="page-select-deity" class="page">
+            <h3 style="text-align:center; color:#aaa; margin-bottom:2px;">請選擇祈求的神明</h3>
+            <div style="text-align: right; margin: 0 15px 5px 15px;">
+                <button id="btn-toggle-sort" onclick="toggleDeityEditMode()"
+                    style="background: transparent; border: 1px solid #888; color: #ccc; padding: 5px 12px; border-radius: 15px; font-size: 0.9rem;">✏️
+                    調整神明順序</button>
+            </div>
+            <div id="deity-selection-list" class="grid-menu"></div>
+            <button id="btn-temp-deity-bottom" class="action-btn"
+                style="background: var(--accent); color: #000; font-weight: bold; border: none; box-shadow: 0 4px 15px rgba(0,0,0,0.5);"
+                onclick="openQuickAddModal('qiuqian')">✍️ 臨時自訂神明</button>
+        </div>
+        <div id="page-manage-deities" class="page">
+            <h3>管理神明列表</h3>
+            <div id="manage-deity-list"></div>
+        </div>
+        <div id="page-edit-deity" class="page">
+            <h3 id="edit-deity-title">新增神明</h3>
+            <input type="hidden" id="edit-deity-id">
+
+            <div class="form-group"> <label>神明聖號 (顯示名稱)</label>
+                <input type="text" id="edit-deity-name" placeholder="例如：白沙屯媽祖">
+            </div>
+            <div class="form-group"> <label>籤詩系統</label>
+                <select id="edit-deity-system"></select>
+            </div>
+            <div class="form-group"> <label>確認聖杯數 (預設3)</label>
+                <input type="number" id="edit-deity-saint-target" placeholder="3" min="1" max="10">
+            </div>
+
+            <!-- ★ 將進階欄位包裝起來，方便在臨時模式隱藏 -->
+            <div id="edit-deity-advanced-fields">
+                <div class="form-group"> <label>宮廟標題 (籤詩抬頭)</label>
+                    <input type="text" id="edit-deity-temple" placeholder="例如：拱天宮">
+                </div>
+                <div class="form-group"> <label>落款文字 (籤詩底部)</label>
+                    <input type="text" id="edit-deity-committee" placeholder="例如：管理委員會 恭印">
+                </div>
+                <div class="form-group"> <label>廟宇地址與電話 (籤詩側邊欄)</label>
+                    <textarea id="edit-deity-address" rows="2"
+                        placeholder="例如：苗栗縣通霄鎮白東里8巷8號&#10;電話:037-792058"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>宮名左右側小字 (如：地名「通霄」)</label>
+                    <div style="display:flex; gap:10px;">
+                        <input type="text" id="edit-deity-right-text" placeholder="右側 (如:通)" style="flex:1;">
+                        <input type="text" id="edit-deity-left-text" placeholder="左側 (如:霄)" style="flex:1;">
+                    </div>
+                    <label style="display:flex; align-items:center; margin-top:8px; font-size:0.85rem; cursor:pointer;">
+                        <input type="checkbox" id="edit-deity-circle-text"
+                            style="width:16px; height:16px; margin-right:5px;"> 為小字加上圓圈外框 (印章效果)
+                    </label>
+                </div>
+                <div class="form-group"> <label>聖像 (Emoji 或 照片)</label>
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <div id="edit-deity-preview" class="icon-box"
+                            style="border:2px solid #555; border-radius:10px;"></div>
+                        <div style="flex:1;">
+                            <input type="text" id="edit-deity-emoji" placeholder="輸入 Emoji (如 🤴)"
+                                oninput="updateDeityPreview()" style="margin-bottom:5px;">
+                            <div class="file-input-wrapper"> <span class="file-btn">或 上傳照片</span>
+                                <input type="file" accept="image/*" onchange="handleDeityImage(event)">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div style="border-top:1px solid #444; margin:15px 0; padding-top:15px;">
+                    <label style="color:var(--accent); font-size:0.9rem;">專屬主題背景 (選填)</label>
+                    <div style="display:flex; gap:10px; margin-top:10px;">
+                        <div class="form-group" style="flex:1;">
+                            <label>表頭顏色</label>
+                            <input type="color" id="edit-deity-header-color" value="#d32f2f"
+                                style="height:40px; padding:0;">
+                        </div>
+                        <div class="form-group" style="flex:1;">
+                            <label>背景顏色</label>
+                            <input type="color" id="edit-deity-bg-color" value="#1a1a1a"
+                                style="height:40px; padding:0;">
+                        </div>
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label>專屬背景圖片</label>
+                        <div id="edit-deity-bg-preview"
+                            style="height:80px; background:#222; border-radius:8px; margin-bottom:10px; background-size:cover; background-position:center; border:1px dashed #555;">
+                        </div>
+                        <div class="file-input-wrapper"> <span class="file-btn"
+                                style="padding:5px; font-size:0.9rem;">上傳圖片</span>
+                            <input type="file" accept="image/*" onchange="handleDeityBgUpload(event)">
+                        </div>
+                        <button class="secondary-btn" onclick="clearDeityBg()"
+                            style="margin-top:5px;font-size:0.8rem; padding:5px;">移除圖片</button>
+                    </div>
+                </div>
+                <div style="border-top:1px solid #444; margin:15px 0; padding-top:15px;">
+                    <label style="color:var(--accent); font-size:0.9rem;">專屬籤筒 (選填)</label>
+                    <div class="grid-menu" style="grid-template-columns:1fr 1fr; gap:10px; margin-top:5px;">
+                        <div style="text-align:center; background:#222; padding:10px; border-radius:8px;">
+                            <div id="edit-deity-qt-static-preview"
+                                style="height:50px; display:flex; justify-content:center; align-items:center; margin-bottom:5px;">
+                                <span style="color:#666;">靜止</span>
+                            </div>
+                            <label class="secondary-btn"
+                                style="font-size:0.7rem; padding:5px; display:block; cursor:pointer; margin:0;">
+                                上傳靜止圖 <input type="file" style="display:none;" accept="image/*"
+                                    onchange="handleDeityQtUploadTemp(event, 'static')">
+                            </label>
+                        </div>
+                        <div style="text-align:center; background:#222; padding:10px; border-radius:8px;">
+                            <div id="edit-deity-qt-active-preview"
+                                style="height:50px; display:flex; justify-content:center; align-items:center; margin-bottom:5px;">
+                                <span style="color:#666;">搖動</span>
+                            </div>
+                            <label class="secondary-btn"
+                                style="font-size:0.7rem; padding:5px; display:block; cursor:pointer; margin:0;">
+                                上傳搖動圖 <input type="file" style="display:none;" accept="image/*"
+                                    onchange="handleDeityQtUploadTemp(event, 'active')">
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div> <!-- 進階欄位結束 -->
+
+            <!-- 一般編輯模式的按鈕 -->
+            <div id="edit-deity-normal-btns" style="display:flex; gap:10px; margin-top:20px;">
+                <button class="action-btn" onclick="saveDeity()">儲存設定</button>
+                <button class="secondary-btn" onclick="deleteDeity()" id="btn-del-deity"
+                    style="color:#f44336; border-color:#f44336;">🫴送神</button>
+            </div>
+
+            <!-- ★ 臨時新增模式的專屬按鈕 -->
+            <div id="edit-deity-temp-btns" style="display:none; margin-top:20px;">
+                <div style="display:flex; gap:10px; margin-bottom:10px;">
+                    <button class="action-btn" onclick="saveCustomDeity(false)" style="flex:1;">儲存 (暫時使用)</button>
+                    <button class="secondary-btn" onclick="goBack()" style="flex:1;">取消</button>
+                </div>
+                <button class="action-btn" onclick="saveCustomDeity(true)"
+                    style="background:var(--accent); color:#000; margin-top:0;">列入神明列位</button>
+            </div>
+        </div>
+        <div id="page-qiuqian" class="page">
+            <div id="step-1" class="step-box"
+                style="background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); padding:20px; border-radius:12px; margin-bottom:20px; flex:1; display:flex; flex-direction:column;">
+
+                <div id="step1-deity-header" class="step-deity-header"
+                    style="flex: 1; display: flex; justify-content: center; align-items: center; min-height: 100px;">
+                </div>
+
+                <div style="width:100%; display: flex; flex-direction: column; justify-content: flex-end;">
+                    <h3 class="instruction-text" id="step-1-text" style="text-align:center; margin-bottom:2px;">
+                        請先向神明稟報...</h3>
+
+                    <div id="normal-system-input-box" style="display:none; margin-bottom:2px;">
+                        <label style="color:#aaa; font-size:0.9rem;">籤詩系統 (本次套用)</label>
+                        <select id="input-normal-system" onchange="window.changeSessionNormalSystem()"
+                            style="text-align:center; border:1px solid var(--accent); background:#222; width:100%; padding:8px; border-radius:5px; color:#fff; box-sizing:border-box;">
+                        </select>
+                    </div>
+
+                    <div id="normal-deity-input-box" style="display:none; margin-bottom:2px;">
+                        <label style="color:#aaa; font-size:0.9rem;">自訂神明 (選填)</label>
+                        <input type="text" id="input-normal-deity" placeholder="例如：請輸入神明聖號..."
+                            style="text-align:center; border:1px solid var(--accent); background:#222; width:100%; padding:8px; border-radius:5px; color:#fff; box-sizing:border-box;">
+                    </div>
+
+                    <div id="qiuqian-subject-box" style="margin-bottom:2px;">
+                        <label style="color:#aaa; font-size:0.9rem;">問事內容 (選填)</label>
+                        <input type="text" id="input-qiuqian-subject-step1" placeholder="例如：請輸入問事內容..."
+                            style="text-align:center; border:1px solid var(--accent); background:#222; width:100%; padding:8px; border-radius:5px; color:#fff; box-sizing:border-box;">
+                    </div>
+
+                    <div class="cup-display" id="perm-cup" style="margin-bottom:2px;">
+                        準備請示
+                    </div>
+
+                    <p id="perm-reject-msg" class="reject-msg"
+                        style="display:none; color:#ffeb3b; text-align:center; margin-bottom:2px;">
+                        請向神明詳細說明，稍後再請示。</p>
+
+                    <button class="action-btn" id="btn-perm" onclick="askPermission()" style="width:100%; margin:0;">🙏
+                        擲筊請示</button>
+                </div>
+            </div>
+
+
+            <!-- 【Step 2: 抽籤】 -->
+            <div id="step-2" class="step-box"
+                style="display:none; background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); padding:20px; border-radius:12px; margin-bottom:20px; flex:1; display:flex; flex-direction:column; justify-content:flex-start; box-sizing: border-box;">
+
+                <!-- 區塊 1：神明聖像 -->
+                <div id="step2-deity-header" class="step-deity-header"
+                    style="min-height: 80px; display: flex; justify-content: center; align-items: center;"></div>
+
+                <!-- 統合底部控制區 -->
+                <div class="unified-bottom-panel">
+                    <!-- 區塊 2：籤號 -->
+                    <div class="unified-block-lot">
+                        <h2 id="step2-lot-title"
+                            style="color:var(--accent); margin:0; opacity: 0; transition: opacity 0.4s;">
+                            第 <span id="lot-num-display" style="font-size:3rem;">?</span> 籤
+                        </h2>
+                    </div>
+
+                    <!-- 區塊 3：筊杯 (Step 2 隱藏保留空間) -->
+                    <div class="unified-block-cup" style="visibility: hidden;">
+                        <div class="cup-display">準備擲筊</div>
+                    </div>
+
+                    <!-- 區塊 4：文字提示 -->
+                    <div class="unified-block-hint">
+                        <label class="flex-center"
+                            style="color:#aaa; font-size:0.85rem; margin-bottom:2px; cursor:pointer; display:inline-flex;">
+                            <input type="checkbox" id="chk-put-back"
+                                style="width:16px; height:16px; margin-right:5px; margin-bottom:0;"> 籤支抽後放回
+                        </label>
+                        <h3 class="instruction-text" id="draw-instruction"
+                            style="color:var(--accent); font-weight:bold; font-size:1.1rem; margin:0;">
+                            籤筒浮現中...
+                        </h3>
+                    </div>
+
+                    <!-- 區塊 5：動作區 (籤筒) -->
+                    <div class="unified-block-action">
+                        <div id="draw-anim-area"
+                            style="display:flex; justify-content:center; align-items:center; width:100%; height:100%;">
+                            <span style="font-size: 4rem;" id="step2-cylinder-icon">🏺</span>
+                        </div>
+                        <button class="action-btn" id="btn-draw" onclick="drawLot()" style="display:none;">抽籤</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 【Step 3: 擲筊確認】 -->
+            <div id="step-3" class="step-box"
+                style="display:none; background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.2); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); padding:20px; border-radius:12px; margin-bottom:10px; flex:1; display:flex; flex-direction:column; justify-content:flex-start; box-sizing: border-box;">
+
+                <!-- 區塊 1：神明聖像 -->
+                <div id="step3-deity-header" class="step-deity-header"
+                    style="min-height: 80px; display: flex; justify-content: center; align-items: center;"></div>
+
+                <!-- 統合底部控制區 -->
+                <div class="unified-bottom-panel">
+                    <!-- 區塊 2：籤號 -->
+                    <div class="unified-block-lot">
+                        <h2 style="color:var(--accent); margin:0;">第 <span id="confirm-lot-num"
+                                style="font-size:3rem;"></span> 籤</h2>
+                    </div>
+
+                    <!-- 區塊 3：筊杯 -->
+                    <div class="unified-block-cup">
+                        <div class="cup-display" id="confirm-cup" style="margin:0;">準備擲筊</div>
+                    </div>
+
+                    <!-- 區塊 4：文字提示 -->
+                    <div class="unified-block-hint">
+                        <p id="confirm-status-text" style="color:#888; margin:0;">
+                            目前：<span id="saint-count"
+                                style="color:var(--accent); font-weight:bold; font-size:1.5rem;">0</span> 聖筊
+                        </p>
+                        <p id="confirm-instruction" class="instruction-text" style="font-size:0.9rem; margin:0;">
+                            請擲筊確認 (需連續 <span id="req-saint">3</span> 聖筊)
+                        </p>
+                        <div id="confirm-msg"
+                            style="display:none; color:#ff5252; background:rgba(255, 82, 82, 0.1); border:1px solid #ff5252; padding:4px 8px; border-radius:6px; font-size:0.9rem; margin:0; width:100%; box-sizing:border-box;">
+                        </div>
+                        <div id="step-3-msg"
+                            style="color:var(--accent); font-weight:bold; font-size:1.1rem; margin:0; display:none;">
+                        </div>
+                    </div>
+
+                    <!-- 區塊 5：動作區 (按鈕) -->
+                    <div class="unified-block-action">
+                        <!-- 剛進來時的擲筊按鈕 -->
+                        <button id="btn-confirm" class="action-btn" onclick="throwCupForConfirm()"
+                            style="width:100%; margin:0;">擲筊確認</button>
+
+                        <!-- 成功/失敗時替換的按鈕群 -->
+                        <div id="step-3-action-area" style="display:none; width:100%; height:100%;">
+                            <div id="step-3-btns"
+                                style="display:flex; gap:10px; justify-content:center; align-items:center; width:100%; height:100%;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="step-4" class="step-box" style="display:none;">
+                <div id="result-wrapper">
+                    <div style="text-align:center; width:100%;">
+                        <h3 id="step-4-title" style="color:var(--accent); font-size:1.5rem; margin-bottom:5px;">求籤成功！
+                        </h3>
+
+                        <div id="result-display"
+                            style="width:100%; display:flex; justify-content:center; margin-bottom:15px;">
+                        </div>
+
+                        <div id="normal-result-display"
+                            style="display:none; text-align:center; font-size:2rem; padding:20px; border:1px solid #555; border-radius:10px; margin-bottom:10px;">
+                            第 <span id="final-lot-num"></span> 籤
+                        </div>
+                    </div>
+
+                    <!-- 2. 可收合的備註輸入區 (移除多餘的 padding-bottom) -->
+                    <div id="qiuqian-notes-container" style="display:none; width:100%; margin-top:5px;">
+                        <label
+                            style="color:var(--accent); font-size:0.9rem; margin-bottom:5px; display:block;">請問什麼事？(主旨)</label>
+                        <input type="text" id="input-subject" placeholder="例如：事業、感情..."
+                            style="width:100%; padding:10px; margin-bottom:15px; background:#111; color:#fff; border:1px solid #555; border-radius:8px; box-sizing:border-box;">
+
+                        <label
+                            style="color:var(--accent); font-size:0.9rem; margin-bottom:5px; display:block;">備註細節：</label>
+                        <textarea id="input-note" rows="3" placeholder="其他補充事項..."
+                            style="width:100%; padding:10px; background:#111; color:#fff; border:1px solid #555; border-radius:8px; box-sizing:border-box;"></textarea>
+                    </div>
+                </div>
+
+                <!-- 3. 吸底操作列 -->
+                <div class="fixed-bottom-bar">
+                    <button type="button" id="btn-toggle-notes" onclick="window.toggleQiuqianNotes()">📝 備註</button>
+                    <button type="button" id="btn-save-qiuqian" onclick="saveRecord()">💾 儲存紀錄</button>
+                </div>
+            </div>
+        </div>
+        <div id="page-collection-menu" class="page">
+            <h3 style="text-align:center;">選擇籤詩系統</h3>
+            <div
+                style="position: sticky; top: 0; background: var(--bg-color); padding: 10px 15px; z-index: 50; box-shadow: 0 4px 6px rgba(0,0,0,0.3); margin-bottom: 10px; display: flex; gap: 8px; align-items: center;">
+                <!-- 搜尋框 (設定 flex: 1 讓它自動佔滿剩餘空間) -->
+                <input type="text" id="globalPoemSearch" placeholder="🔍 搜尋系統或關鍵字..."
+                    style="margin: 0; flex: 1; padding: 10px 15px; border-radius: 25px; border: 1px solid #555; background: var(--input-bg); color: #fff; font-size: 0.95rem; outline: none; box-sizing: border-box;">
+                <!-- 黃底白字新增按鈕 -->
+                <button onclick="goTo('edit-system')"
+                    style="margin: 0; background: #ffb300; color: #fff; border: none; border-radius: 20px; padding: 10px 15px; font-weight: bold; font-size: 0.95rem; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.2); white-space: nowrap;">新增</button>
+            </div>
+            <div id="globalSearchResult"
+                style="display:none; margin: 0 15px 15px 15px; max-height: 60vh; overflow-y: auto; background: #222; border-radius: 8px; border: 1px solid #444;">
+            </div>
+            <div id="coll-menu-container" class="grid-menu"></div>
+        </div>
+        <div id="page-collection-list" class="page">
+            <h3 id="poem-list-title" style="text-align:center; color:var(--accent); margin-bottom:10px;"></h3>
+
+            <div
+                style="position: sticky; top: 0; background: var(--bg-color); padding: 10px 15px; z-index: 50; box-shadow: 0 4px 6px rgba(0,0,0,0.3); margin-bottom: 10px;">
+                <input type="text" id="poemSearchInput" oninput="filterPoemList()" placeholder="🔍 搜尋第幾首、詩句或關鍵字..."
+                    style="width: 100%; padding: 12px 20px; border-radius: 25px; border: 1px solid #555; background: var(--input-bg); color: #fff; font-size: 1rem; outline: none; box-sizing: border-box;">
+            </div>
+
+            <div id="poem-list-container"></div>
+        </div>
+        <div id="page-collection-view" class="page">
+            <div id="collection-view-container" style="padding-top: 20px;"></div> <button class="secondary-btn"
+                onclick="editCurrentPoem()">🖊️ 編輯此籤</button>
+        </div>
+        <div id="page-edit-single-poem" class="page">
+            <h3>編輯籤詩</h3>
+            <input type="hidden" id="esp-system-id">
+            <input type="hidden" id="esp-lot-num">
+            <div class="form-group"> <label>籤詩圖片</label>
+                <div id="esp-preview"></div>
+                <div class="file-input-wrapper"> <span class="file-btn">上傳圖片</span>
+                    <input type="file" accept="image/*" onchange="handleSinglePoemImage(event)">
+                </div>
+                <button class="secondary-btn" onclick="clearSinglePoemImage()"
+                    style="margin-top:5px;font-size:0.8rem;">清除圖片</button>
+                <div style="font-size:0.8rem; color:#aaa; margin-top:8px;">※ 若有上傳圖片，求籤時將直接顯示圖片，自動忽略下方的文字與版型設定。</div>
+            </div>
+            <div class="form-group">
+                <label>吉凶提示 (選填，例如：上中、靜中求靜)</label>
+                <input type="text" id="esp-level" placeholder="例如：上吉">
+            </div>
+            <div class="form-group"> <label>文字 (四句)</label>
+                <input type="text" id="esp-l1" style="margin-bottom:5px;">
+                <input type="text" id="esp-l2" style="margin-bottom:5px;">
+                <input type="text" id="esp-l3" style="margin-bottom:5px;">
+                <input type="text" id="esp-l4">
+            </div>
+            <div class="form-group"> <label>聖意 / 解曰 (選填)</label>
+                <div class="form-group"
+                    style="background:#222; padding:15px; border-radius:8px; border:1px solid #444;">
+                    <label
+                        style="color:var(--accent); font-size:1.1rem; border-bottom:1px solid #444; padding-bottom:8px;">聖意
+                        / 解曰 (支援多項目)</label>
+                    <div id="esp-intents-container" style="margin-top:10px;">
+                    </div>
+                    <button type="button" class="secondary-btn" onclick="addIntentItem()"
+                        style="border-style:dashed; color:#fff;">+ 新增一筆解曰</button>
+                </div>
+            </div>
+
+            <div style="display:flex; gap:10px;">
+                <button class="action-btn" onclick="saveSinglePoem()" style="flex:2;">💾 & ↩</button>
+                <button class="secondary-btn" onclick="saveImageOnly()" style="flex:1;">單獨儲存圖片</button>
+            </div>
+        </div>
+        <div id="page-edit-system" class="page">
+            <div style="padding: 15px; box-sizing: border-box; display: flex; flex-direction: column;">
+                <h3 style="margin-top:0; margin-bottom:15px; text-align:center; color:var(--accent);">新增籤詩系統</h3>
+
+                <div style="display:flex; gap:10px; margin-bottom:10px;">
+                    <div class="form-group" style="flex:1; margin-bottom:0;">
+                        <label style="font-size:0.85rem;">系統名稱</label>
+                        <input type="text" id="new-sys-name" placeholder="例如：關帝靈籤"
+                            style="padding:8px; margin-bottom:0;">
+                    </div>
+                    <div class="form-group" style="flex:1; margin-bottom:0;">
+                        <label style="font-size:0.85rem;">籤詩版型</label>
+                        <select id="new-sys-format" onchange="toggleCustomTemplateArea()"
+                            style="padding:8px; margin-bottom:0;">
+                            <option value="classic">⛩️ 傳統宮廟 (直書)</option>
+                            <option value="modern">📱 現代簡約 (橫書)</option>
+                            <option value="baishatun">📜 拱天宮 (10宮格)</option>
+                            <option value="shouzhi">🌸 受旨宮 (12宮格)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="panel-solid; margin-bottom:10px;">
+                    <label style="color:var(--accent); font-size:0.9rem; margin-bottom:8px; display:block;">方案
+                        A：建立空系統
+                        (手動輸入)</label>
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <label style="color:#aaa; font-size:0.85rem; white-space:nowrap;">總籤數</label>
+                        <input type="number" id="new-sys-total" value="101"
+                            style="background:#111; padding:6px; margin:0; width:60px; text-align:center;">
+                        <button class="action-btn" onclick="createNewPoemSystem()"
+                            style="margin:0; flex:1; padding:6px;">建立</button>
+                    </div>
+                </div>
+
+                <div style="background:#2a2a2a; padding:12px; border-radius:8px; border:1px dashed var(--accent);">
+                    <label style="color:var(--accent); font-size:0.9rem; margin-bottom:8px; display:block;">方案 B：大批
+                        CSV
+                        匯入</label>
+                    <div style="display: flex; gap: 8px; align-items:center;">
+                        <button class="secondary-btn" onclick="downloadCsvTemplate()"
+                            style="margin:0; flex:1; padding:8px; font-size:0.85rem;">📥 下載範例</button>
+                        <div class="file-input-wrapper" style="flex:1;">
+                            <span class="file-btn"
+                                style="margin:0; padding:8px; font-size:0.85rem; border: 1px solid var(--primary); background: rgba(211,47,47,0.2); color: #fff;">📤
+                                上傳 CSV</span>
+                            <input type="file" accept=".csv" onchange="importCsvSystem(event)">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="page-records" class="page">
+            <!-- 工具列：包含搜尋、篩選與新增按鈕 -->
+            <div style="display:flex; gap:8px; margin-bottom:15px; align-items:center;">
+
+                <input type="text" id="search-keyword" placeholder="搜尋主旨或備註..." oninput="renderRecords()"
+                    style="margin:0; flex:2; border-radius:20px; padding-left:15px; font-size:0.9rem;">
+
+                <select id="search-filter" onchange="renderRecords()"
+                    style="margin:0; flex:1.2; border-radius:20px; padding:8px 5px; font-size:0.85rem;">
+                    <option value="all">全部類型</option>
+                    <option value="poem">神明求籤</option>
+                    <option value="simple">問事對話</option>
+                    <option value="compare">比較選項</option>
+                </select>
+
+                <!-- 新增按鈕：黃底白字，圓角與其他元件統一 -->
+                <button onclick="openManualAdd()"
+                    style="margin:0; flex:0.8; background:#ffb300; color:#fff; border:none; border-radius:20px; padding:8px 0; font-weight:bold; font-size:0.9rem; cursor:pointer; box-shadow:0 2px 4px rgba(0,0,0,0.2);">新增</button>
+
+            </div>
+            <div id="records-container"></div>
+        </div>
+        <div id="page-record-detail" class="page">
+            <input type="hidden" id="detail-id">
+
+            <div class="detail-section">
+                <div class="detail-label">日期</div>
+                <div id="detail-date" style="color: #ccc;"></div>
+            </div>
+
+            <div class="detail-section">
+                <div class="detail-label">籤號/項目</div>
+                <div id="detail-lot" style="font-weight:bold; color:var(--accent); font-size:1.2rem;"></div>
+            </div>
+
+            <div id="btn-share-poem" style="display:none; margin-bottom: 8px;">
+                <div style="display:flex; justify-content:flex-end; gap:8px;">
+                    <button onclick="window.shareResultRecord(this, 'detail-res-container')"
+                        style="background:rgba(76, 175, 80, 0.15); color:#4CAF50; border:1px solid #4CAF50; border-radius:20px; padding:6px 14px; font-size:0.85rem; cursor:pointer; font-weight:bold;">📤
+                        分享</button>
+                    <button onclick="downloadPoemImage('detail-res-container')"
+                        style="background:rgba(25, 118, 210, 0.15); color:#4fc3f7; border:1px solid #1976d2; border-radius:20px; padding:6px 14px; font-size:0.85rem; cursor:pointer; font-weight:bold;">📸
+                        存圖</button>
+                </div>
+            </div>
+
+            <div id="detail-res-container"
+                style="border-radius: 8px; overflow: hidden; min-height: 150px; background: #222; margin-bottom: 20px;">
+            </div>
+
+
+            <div class="detail-section">
+                <div class="detail-label">主旨</div>
+                <input type="text" id="detail-subject" onchange="saveDetailChanges()">
+            </div>
+
+            <div class="detail-section">
+                <div class="detail-label">備註</div>
+                <textarea id="detail-note" onchange="saveDetailChanges()" rows="3"></textarea>
+            </div>
+
+            <div class="detail-section" style="border:none;">
+                <div class="detail-label">追問紀錄</div>
+                <div id="detail-fu-list" style="margin-top:10px;"></div>
+            </div>
+
+            <div class="fu-input-box" id="detail-fu-input-container"
+                style="background:#1a1a1a; padding:15px; border-radius:12px; margin-top:0px; border:1px solid #333;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <h4 style="margin:0; color:var(--accent);">➕ 新增後續追問</h4>
+                </div>
+                <textarea id="detail-fu-q-text" class="custom-input" rows="2" placeholder="請輸入您的追問內容..."></textarea>
+
+                <div id="detail-fu-denied-msg"
+                    style="display:none; color:var(--accent); font-weight:bold; text-align:center; padding:10px; background:rgba(255,179,0,0.1); border:1px solid var(--accent); border-radius:8px; margin-bottom:10px; font-size:0.85rem;">
+                    【未獲允諾賜籤，請向神明詳細說明再請示。】
+                </div>
+                <div id="detail-fu-poem-warn"
+                    style="display:none; color:#f44336; font-weight:bold; text-align:center; padding:8px; background:rgba(244,67,54,0.1); border-radius:6px; border:1px solid #f44336; margin-bottom:10px; font-size:0.85rem;">
+                    【未獲允准，請重新抽籤】
+                </div>
+
+                <div id="detail-fu-times-config"
+                    style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+                    <span style="color:#ddd; font-weight:bold; font-size:0.9rem;">設定擲筊次數：</span>
+                    <div id="module-detail-fu-times" style="display:flex; align-items:center;"></div>
+                </div>
+
+                <div id="detail-fu-rows"></div>
+
+                <div style="display:flex; gap:10px; margin-top:10px;">
+                    <button class="action-btn" onclick="saveDetailFuBlock()" style="margin:0; flex:2;">儲存此段追問</button>
+                    <button class="secondary-btn" onclick="clearDetailFuBlock()" style="margin:0; flex:1;">重置重抽</button>
+                </div>
+            </div>
+        </div>
+        <div id="page-settings" class="page">
+            <div class="content-scroll">
+                <div class="grid-menu settings-compact-grid">
+
+                    <div class="menu-card" onclick="goTo('settings-normal')">
+                        <span>📜</span>
+                        <h3>一般求籤設定</h3>
+                        <div style="font-size:0.8rem;">規則與模式</div>
+                    </div>
+
+                    <div class="menu-card" onclick="goTo('settings-bg')">
+                        <span>🎨</span>
+                        <h3>背景與主題</h3>
+                        <div style="font-size:0.8rem;">設定</div>
+                    </div>
+
+                    <!-- 名字稍微修改，讓使用者知道裡面包含動畫 -->
+                    <div class="menu-card" onclick="goTo('settings-image')">
+                        <span>🖼️</span>
+                        <h3>圖像與動畫</h3>
+                        <div style="font-size:0.8rem;">設定</div>
+                    </div>
+
+                    <div class="menu-card" onclick="goTo('settings-anim')">
+                        <span>🚀</span>
+                        <h3>視覺與動畫</h3>
+                        <div style="font-size:0.8rem;">啟動與過場體驗</div>
+                    </div>
+
+                    <div class="menu-card" onclick="goTo('manage-deities')">
+                        <span>🙏</span>
+                        <h3>神明列位</h3>
+                        <div style="font-size:0.8rem;"></div>
+                    </div>
+
+                    <div class="menu-card" onclick="goTo('manage-systems')">
+                        <span>📚</span>
+                        <h3>籤詩管理</h3>
+                        <div style="font-size:0.8rem;"></div>
+                    </div>
+
+                    <div class="menu-card" onclick="goTo('settings-backup')">
+                        <span>💾</span>
+                        <h3>系統備份</h3>
+                        <div style="font-size:0.8rem;"></div>
+                    </div>
+                </div>
+
+                <div style="text-align:center; color:#666; font-size:0.75rem; margin-top:10px;">
+                    設定自動儲存
+                </div>
+            </div>
+        </div>
+
+        <div id="page-settings-anim" class="page">
+            <div class="content-scroll" style="padding: 12px; box-sizing: border-box;">
+
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1px; border-bottom: 1px solid #333; padding-bottom: 10px;">
+                    <h3 style="margin: 0; color:var(--accent); font-size: 1.15rem;">🚀 視覺與動畫中心</h3>
+                </div>
+                <div
+                    style="border: 1px solid #444; padding: 12px; border-radius: 10px; margin-bottom: 12px; background: rgba(33,150,243,0.05);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                        <span style="font-size:0.9rem; font-weight:bold; color:#2196F3;">啟動開場畫面</span>
+                        <input type="checkbox" id="cfg-show-splash" checked onchange="window.saveSettings()"
+                            style="width:18px; height:18px;">
+                    </div>
+
+                    <div style="display:flex; gap:8px;">
+                        <div
+                            style="flex:1; background:#111; padding:8px; border-radius:6px; border:1px dashed #444; text-align:center;">
+                            <div style="font-size:0.75rem; color:#888; margin-bottom:5px;">一：掛載中</div>
+                            <div id="prev-splash-start"
+                                style="height:40px; display:flex; align-items:center; justify-content:center; font-size:1.5rem;">
+                                🏮</div>
+                            <label class="secondary-btn"
+                                style="font-size:0.7rem; padding:2px 0; display:block; margin:5px 0;"><input type="file"
+                                    accept="image/*" onchange="window.handleSplashUpload(event, 'start')"
+                                    style="display:none;">上傳</label>
+                            <div class="capsule-input-sm">
+                                <button type="button"
+                                    onclick="window.adjustNumber('cfg-splash-dur-start', -0.01, 0.5, 5)">-</button>
+                                <input onclick="this.select()" type="number" id="cfg-splash-dur-start" value="1.50"
+                                    step="0.01" min="0.5" max="5"
+                                    style="width:48px; text-align:center; padding:4px 0; margin:0; background:transparent; color:var(--accent); font-weight:bold; border:none; font-size:0.85rem;"
+                                    onchange="window.validateDirectInput('cfg-splash-dur-start', 0.5, 5)">
+                                <button type="button"
+                                    onclick="window.adjustNumber('cfg-splash-dur-start', 0.01, 0.5, 5)">+</button>
+                            </div>
+                        </div>
+                        <div
+                            style="flex:1; background:#111; padding:8px; border-radius:6px; border:1px dashed #444; text-align:center;">
+                            <div style="font-size:0.75rem; color:#888; margin-bottom:5px;">二：開幕轉場</div>
+                            <div id="prev-splash-end"
+                                style="height:40px; display:flex; align-items:center; justify-content:center; font-size:1.5rem;">
+                                ✨</div>
+                            <label class="secondary-btn"
+                                style="font-size:0.7rem; padding:2px 0; display:block; margin:5px 0;"><input type="file"
+                                    accept="image/*" onchange="window.handleSplashUpload(event, 'end')"
+                                    style="display:none;">上傳</label>
+                            <div class="capsule-input-sm">
+                                <button type="button"
+                                    onclick="window.adjustNumber('cfg-splash-dur-end', -0.01, 0.5, 5)">-</button>
+                                <input onclick="this.select()" type="number" id="cfg-splash-dur-end" value="1.00"
+                                    step="0.01" min="0.5" max="5"
+                                    style="width:48px; text-align:center; padding:4px 0; margin:0; background:transparent; color:var(--accent); font-weight:bold; border:none; font-size:0.85rem;"
+                                    onchange="window.validateDirectInput('cfg-splash-dur-end', 0.5, 5)">
+                                <button type="button"
+                                    onclick="window.adjustNumber('cfg-splash-dur-end', 0.01, 0.5, 5)">+</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div
+                    style="border: 1px solid #444; padding: 12px; border-radius: 10px; margin-bottom: 1px; background: rgba(255,179,0,0.05);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                        <span style="font-size:0.9rem; font-weight:bold; color:var(--accent);">擲筊過場與結果停留</span>
+                        <input type="checkbox" id="cup-anim-enabled" onchange="window.saveSettings()"
+                            style="width:18px; height:18px;">
+                    </div>
+
+                    <div style="display:flex; gap:8px; margin-bottom:10px;">
+                        <div style="flex:1; text-align:center; background:#111; padding:6px; border-radius:6px;">
+                            <div style="font-size:0.7rem; color:#888;">預備(靜止)</div>
+                            <div id="prev-cup-anim-ready"
+                                style="height:35px; font-size:1.2rem; display:flex; align-items:center; justify-content:center;">
+                                🙏</div>
+                            <label class="secondary-btn"
+                                style="font-size:0.65rem; padding:2px 0; display:block; margin:4px 0;"><input
+                                    type="file" accept="image/*" onchange="handleCupAnimUpload(event, 'ready')"
+                                    style="display:none;">更換</label>
+                            <div class="capsule-input-sm">
+                                <button type="button"
+                                    onclick="window.adjustNumber('cup-time-ready', -0.01, 0.01, 5)">-</button>
+                                <input onclick="this.select()" type="number" id="cup-time-ready" value="0.50"
+                                    step="0.01" min="0.01" max="5"
+                                    style="width:48px; text-align:center; padding:4px 0; margin:0; background:transparent; color:var(--accent); font-weight:bold; border:none; font-size:0.85rem;"
+                                    onchange="window.validateDirectInput('cup-time-ready', 0.01, 5)">
+                                <button type="button"
+                                    onclick="window.adjustNumber('cup-time-ready', 0.01, 0.01, 5)">+</button>
+                            </div>
+                        </div>
+                        <div style="flex:1; text-align:center; background:#111; padding:6px; border-radius:6px;">
+                            <div style="font-size:0.7rem; color:#888;">丟出(動態)</div>
+                            <div id="prev-cup-anim-throw"
+                                style="height:35px; font-size:1.2rem; display:flex; align-items:center; justify-content:center;">
+                                🌗</div>
+                            <label class="secondary-btn"
+                                style="font-size:0.65rem; padding:2px 0; display:block; margin:4px 0;"><input
+                                    type="file" accept="image/*" onchange="handleCupAnimUpload(event, 'throw')"
+                                    style="display:none;">更換</label>
+                            <div class="capsule-input-sm">
+                                <button type="button"
+                                    onclick="window.adjustNumber('cup-time-throw', -0.01, 0.01, 5)">-</button>
+                                <input onclick="this.select()" type="number" id="cup-time-throw" value="0.50"
+                                    step="0.01" min="0.01" max="5"
+                                    style="width:48px; text-align:center; padding:4px 0; margin:0; background:transparent; color:var(--accent); font-weight:bold; border:none; font-size:0.85rem;"
+                                    onchange="window.validateDirectInput('cup-time-throw', 0.01, 5)">
+                                <button type="button"
+                                    onclick="window.adjustNumber('cup-time-throw', 0.01, 0.01, 5)">+</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        style="display:flex; align-items:center; justify-content:space-between; background:rgba(255,255,255,0.05); padding:8px; border-radius:6px;">
+                        <label style="display:flex; align-items:center; gap:5px; cursor:pointer; font-size:0.85rem;">
+                            <input type="radio" name="cup-result-type" value="timer" onchange="window.saveSettings()"
+                                style="width:15px; height:15px;"> 自動停留
+                        </label>
+                        <div class="capsule-input-sm">
+                            <button type="button"
+                                onclick="window.adjustNumber('cup-time-result-sec', -0.01, 0.01, 20)">-</button>
+                            <input onclick="this.select()" type="number" id="cup-time-result-sec" value="0.50"
+                                step="0.01" min="0.01" max="20"
+                                style="width:48px; text-align:center; padding:4px 0; margin:0; background:transparent; color:var(--accent); font-weight:bold; border:none; font-size:0.85rem;"
+                                onchange="window.validateDirectInput('cup-time-result-sec', 0.01, 20)">
+                            <button type="button"
+                                onclick="window.adjustNumber('cup-time-result-sec', 0.01, 0.01, 20)">+</button>
+                        </div>
+                        <label style="display:flex; align-items:center; gap:5px; cursor:pointer; font-size:0.85rem;">
+                            <input type="radio" name="cup-result-type" value="click" onchange="window.saveSettings()"
+                                style="width:15px; height:15px;"> 點擊跳轉
+                        </label>
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:10px; margin-top: 1px; padding-bottom: 30px;">
+                    <button class="secondary-btn" onclick="window.resetAnimImagesOnly()"
+                        style="flex:1; padding:12px 5px; font-size:0.85rem; border-color:#f44336; color:#f44336; background: rgba(244,67,54,0.05); font-weight:bold;">
+                        🗑️ 還原預設圖案
+                    </button>
+                    <button class="secondary-btn" onclick="window.resetDurationsOnly()"
+                        style="flex:1; padding:12px 5px; font-size:0.85rem; border-color:#aaa; color:#ccc; background: rgba(255,255,255,0.05); font-weight:bold;">
+                        ⏱️ 還原預設秒數
+                    </button>
+                </div>
+
+            </div>
+        </div>
+
+        <div id="page-settings-bg" class="page">
+            <div class="content-scroll"
+                style="display: flex; flex-direction: column; height: 100%; box-sizing: border-box; padding-bottom: 15px;">
+
+                <div style="text-align: center; margin-bottom: 2vh;">
+                    <h3 style="color:var(--accent); margin-bottom: 5px;">🎨 全域主題設定</h3>
+                    <p style="color:#aaa; font-size:0.85rem; margin: 0;">(建議使用深色背景，以確保文字清晰)</p>
+                </div>
+
+                <div style="display: flex; gap: 15px; margin-bottom: 2vh;">
+                    <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                        <label style="font-size: 0.9rem;">表頭與按鈕</label>
+                        <input type="color" id="global-header-color" value="#d32f2f"
+                            style="width: 100%; height: 45px; padding: 0; cursor: pointer; border: none; border-radius: 6px;">
+                    </div>
+                    <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                        <label style="font-size: 0.9rem;">背景顏色</label>
+                        <input type="color" id="global-bg-color" value="#1a1a1a"
+                            style="width: 100%; height: 45px; padding: 0; cursor: pointer; border: none; border-radius: 6px;">
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 0;">
+                    <label style="font-size: 0.9rem;">自訂背景圖片 (會覆蓋背景顏色)</label>
+                    <div id="global-bg-preview"
+                        style="height: 18vh; max-height: 150px; min-height: 90px; background:#222; border-radius:8px; margin-bottom:10px; background-size:cover; background-position:center; border:1px dashed #555;">
+                    </div>
+
+                    <div style="display: flex; gap: 10px;">
+                        <label class="secondary-btn"
+                            style="flex: 1; margin: 0; text-align: center; cursor: pointer; padding: 10px 0;">
+                            🖼️ 上傳圖片
+                            <input type="file" accept="image/*" onchange="handleGlobalBgUpload(event)"
+                                style="display: none;">
+                        </label>
+                        <button class="secondary-btn" onclick="clearGlobalBg()"
+                            style="flex: 1; margin: 0; padding: 10px 0;">🗑️ 移除圖片</button>
+                    </div>
+                </div>
+
+                <div style="margin-top: auto; display: flex; gap: 10px; padding-top: 20px;">
+                    <!-- 🌟 還原預設放在左邊：flex 設為 1，加上垃圾桶圖示與微紅底色 -->
+                    <button class="secondary-btn" onclick="resetBgSettings()"
+                        style="flex: 1; margin: 0; color:#f44336; border-color:#f44336; background: rgba(244,67,54,0.05); font-weight:bold;">🗑️
+                        還原預設</button>
+
+                    <!-- 🌟 儲存設定放在右邊：flex 設為 1 -->
+                    <button class="action-btn" onclick="saveBgSettings()" style="flex: 1; margin: 0;">💾 儲存設定</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="page-settings-image" class="page">
+            <div
+                style="border: 1px dashed #555; padding: 12px; border-radius: 8px; margin-bottom: 15px; background: rgba(255,255,255,0.02);">
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <span style="color: var(--accent); font-weight:bold; font-size: 0.95rem;">自訂筊杯</span>
+                    <button class="secondary-btn" onclick="resetAllCups(); setTimeout(window.enforceCupModeLogic, 100);"
+                        style="margin: 0; padding: 4px 10px; font-size: 0.75rem; width: auto; color: #f44336; border-color: #f44336;">🗑️
+                        還原預設</button>
+                </div>
+
+                <div style="background:#2a2a2a; padding:10px; border-radius:8px; margin-bottom:10px;">
+                    <div style="font-size: 0.85rem; margin-bottom: 8px; color: #ccc;">筊杯呈現方式：</div>
+                    <div style="display: flex; gap: 10px;">
+                        <label
+                            style="display: flex; align-items: center; gap: 5px; font-size: 0.85rem; cursor: pointer; flex: 1;">
+                            <input type="radio" id="radio-mode-text" name="cup-display-mode" value="text"
+                                onchange="saveSettings()" style="margin: 0; width: 16px; height: 16px;">
+                            <span>預設陰刻文字</span>
+                        </label>
+                        <label
+                            style="display: flex; align-items: center; gap: 5px; font-size: 0.85rem; cursor: pointer; flex: 1;">
+                            <input type="radio" id="radio-mode-image" name="cup-display-mode" value="image"
+                                onchange="window.enforceCupModeLogic(true)"
+                                style="margin: 0; width: 16px; height: 16px;">
+                            <span>自訂上傳圖像</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div style="display:flex; gap: 8px;">
+                    <div
+                        style="flex:1; text-align:center; background: #222; padding: 8px; border-radius: 8px; border: 1px solid #444;">
+                        <div style="color: #ddd; margin-bottom: 5px; font-size: 0.8rem;">聖筊</div>
+                        <div id="prev-cup-saint" class="icon-box" style="height:40px; margin-bottom:8px;"></div>
+                        <label class="secondary-btn"
+                            style="font-size:0.7rem; padding:4px 0; display:block; margin:0; width: 100%;"><input
+                                type="file" style="display:none;" accept="image/*"
+                                onchange="handleCupUpload(event,'cup_saint'); setTimeout(window.enforceCupModeLogic, 100);">上傳</label>
+                    </div>
+                    <div
+                        style="flex:1; text-align:center; background: #222; padding: 8px; border-radius: 8px; border: 1px solid #444;">
+                        <div style="color: #ddd; margin-bottom: 5px; font-size: 0.8rem;">笑筊</div>
+                        <div id="prev-cup-laugh" class="icon-box" style="height:40px; margin-bottom:8px;"></div>
+                        <label class="secondary-btn"
+                            style="font-size:0.7rem; padding:4px 0; display:block; margin:0; width: 100%;"><input
+                                type="file" style="display:none;" accept="image/*"
+                                onchange="handleCupUpload(event,'cup_laugh'); setTimeout(window.enforceCupModeLogic, 100);">上傳</label>
+                    </div>
+                    <div
+                        style="flex:1; text-align:center; background: #222; padding: 8px; border-radius: 8px; border: 1px solid #444;">
+                        <div style="color: #ddd; margin-bottom: 5px; font-size: 0.8rem;">蓋筊</div>
+                        <div id="prev-cup-covered" class="icon-box" style="height:40px; margin-bottom:8px;"></div>
+                        <label class="secondary-btn"
+                            style="font-size:0.7rem; padding:4px 0; display:block; margin:0; width: 100%;"><input
+                                type="file" style="display:none;" accept="image/*"
+                                onchange="handleCupUpload(event,'cup_covered'); setTimeout(window.enforceCupModeLogic, 100);">上傳</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 🌟 第三個大虛線框：自訂籤筒 🌟 -->
+            <div
+                style="border: 1px dashed #555; padding: 12px; border-radius: 8px; background: rgba(255,255,255,0.02);">
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <span style="color: var(--accent); font-weight:bold; font-size: 0.95rem;">自訂籤筒</span>
+                    <button class="secondary-btn" onclick="resetQiantong()"
+                        style="margin: 0; padding: 4px 10px; font-size: 0.75rem; width: auto; color: #f44336; border-color: #f44336;">🗑️
+                        還原預設</button>
+                </div>
+
+                <div style="display:flex; gap: 8px;">
+                    <div
+                        style="flex:1; text-align:center; background: #222; padding: 8px; border-radius: 8px; border: 1px solid #444;">
+                        <div style="color: #ddd; margin-bottom: 5px; font-size: 0.8rem;">抽籤前 (靜止)</div>
+                        <div id="prev-qt-static" class="icon-box" style="height:50px; margin-bottom:8px;"></div>
+                        <label class="secondary-btn"
+                            style="font-size:0.7rem; padding:4px 0; display:block; margin:0; width: 100%;"><input
+                                type="file" style="display:none;" accept="image/*"
+                                onchange="handleQiantongUpload(event,'static')">上傳</label>
+                    </div>
+                    <div
+                        style="flex:1; text-align:center; background: #222; padding: 8px; border-radius: 8px; border: 1px solid #444;">
+                        <div style="color: #ddd; margin-bottom: 5px; font-size: 0.8rem;">抽籤後 (動態)</div>
+                        <div id="prev-qt-active" class="icon-box" style="height:50px; margin-bottom:8px;"></div>
+                        <label class="secondary-btn"
+                            style="font-size:0.7rem; padding:4px 0; display:block; margin:0; width: 100%;"><input
+                                type="file" style="display:none;" accept="image/*"
+                                onchange="handleQiantongUpload(event,'active')">上傳</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        </div>
+        <div id="page-settings-normal" class="page" style="padding: 15px; box-sizing: border-box;">
+
+            <div class="setting-item" style="margin-bottom:15px; background:#2a2a2a; border-radius:8px; padding:10px;">
+                <label style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+                    <span style="font-weight:bold; color:var(--accent);">跳過請示是否賜籤</span>
+                    <input type="checkbox" id="chk-skip" style="margin:0; width:18px; height:18px;"
+                        onchange="saveSettings()">
+                </label>
+                <div style="font-size:0.75rem; color:#888; line-height:1.4;">勾選此選項，在一般抽籤可稟報後直接抽籤。</div>
+            </div>
+
+            <div style="display:flex; gap:10px; margin-bottom:15px;">
+                <div style="flex:1;">
+                    <label style="font-size:0.85rem; margin-bottom:4px; display:block;">預設系統</label>
+                    <select id="sel-default-system" onchange="window.updateSystemTotalUI(); saveSettings()"
+                        style="padding:8px; margin:0;"></select>
+                </div>
+            </div>
+
+            <div id="setting-total-lot-area"
+                style="background:#222; padding:10px; border-radius:8px; border:1px solid #444; transition: opacity 0.3s; margin-bottom:20px;">
+                <label class="flex-between; margin-bottom:0;">
+                    <span style="font-size:0.85rem;">自訂籤支總數 (無系統時生效)</span>
+                    <input type="number" id="input-total-lot" placeholder="101" onchange="saveSettings()"
+                        style="width:60px; padding:6px; background:#111; color:#fff; border:1px solid #555; text-align:center; margin:0;">
+                </label>
+            </div>
+            <div id="setting-total-lot-hint"
+                style="font-size:0.85rem; color:var(--accent); text-align:center; display:none; font-weight:bold; margin-top:-10px; margin-bottom:20px;">
+                ※所選籤詩系統為 X 籤</div>
+
+            <h3
+                style="color: var(--accent); margin: 0 0 10px 0; font-size:1.1rem; border-top:1px dashed #555; padding-top:15px;">
+                👆 抽籤模式設定</h3>
+            <!-- 🌟 加入第三個選項按鈕 -->
+            <div class="mode-btn-group" style="margin-bottom:10px; display:flex; gap:5px;">
+                <div id="btn-mode-timer" class="mode-btn" style="padding:8px; font-size:0.85rem; flex:1;"
+                    onclick="switchDrawMode('timer'); saveSettings();">⏱️ 秒數</div>
+                <div id="btn-mode-touch" class="mode-btn" style="padding:8px; font-size:0.85rem; flex:1;"
+                    onclick="switchDrawMode('touch'); saveSettings();">👆 觸控</div>
+                <div id="btn-mode-tap" class="mode-btn" style="padding:8px; font-size:0.85rem; flex:1;"
+                    onclick="switchDrawMode('tap'); saveSettings();">✨ 感應</div>
+            </div>
+
+            <!-- 🌟 三種模式對應的提示/設定區 -->
+            <div id="timer-config-area" style="display:none; padding:10px; background:#2a2a2a; border-radius:8px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.85rem;">
+                    <span>動畫秒數 (1~5秒)</span>
+                    <div class="capsule-input-sm">
+                        <button type="button"
+                            onclick="window.adjustNumber('input-anim-seconds', -0.01, 1, 5)">-</button>
+                        <input type="number" id="input-anim-seconds" value="1.00" min="1" max="5" step="1"
+                            style="width:50px; text-align:center; padding:4px; margin:0; background:transparent; color:var(--accent); font-weight:bold; border:none;"
+                            onclick="this.select()" onchange="window.validateDirectInput('input-anim-seconds', 1, 5)">
+                        <button type="button" onclick="window.adjustNumber('input-anim-seconds', 0.01, 1, 5)">+</button>
+                    </div>
+                </div>
+            </div>
+            <div id="touch-hint-area"
+                style="display:none; padding:10px; background:#2a2a2a; border-radius:8px; text-align:center; font-size:0.85rem; color:#ccc;">
+                ※壓住籤筒撥動，鬆開即抽出籤支
+            </div>
+            <div id="tap-hint-area"
+                style="display:none; padding:10px; background:#2a2a2a; border-radius:8px; text-align:center; font-size:0.85rem; color:#ccc;">
+                ※點擊開始搖晃，憑直覺再次點擊出籤
+            </div>
+        </div>
+
+        <div id="page-settings-backup" class="page">
+            <div class="content-scroll" style="padding: 10px;">
+                <div style="text-align:center; margin-bottom: 15px;">
+                    <span style="font-size:2rem;">💾</span>
+                    <h2 style="margin: 5px 0; font-size: 1.2rem; color:var(--accent);">資料備份中心</h2>
+                    <p style="font-size:0.8rem; color:#888; margin: 0;">紀錄同步與全機設定管理</p>
+                </div>
+
+                <div class="setting-item"
+                    style="background:#222; padding:15px; border-radius:8px; margin-bottom: 12px; border: 1px solid #ffb300;">
+                    <h4 style="color:var(--accent); margin-top:0;">☁️ 綁定專屬雲端空間</h4>
+
+                    <label style="color:#aaa; font-size:0.9rem;">選擇資料庫類型</label>
+                    <select id="db-type-select" onchange="toggleDbInput()" style="margin-bottom:10px;">
+                        <option value="local">僅存在本機 (不連網)</option>
+                        <option value="gas">Google 試算表 (GAS 網址)</option>
+                        <option value="firebase">Firebase (Config 金鑰)</option>
+                    </select>
+
+                    <div id="db-input-gas" style="display:none; margin-top:10px;">
+                        <label style="color:#aaa; font-size:0.9rem;">設定 Webhook / GAS 網址：</label>
+                        <input type="text" id="custom-gas-url" placeholder="https://script.google.com/macros/s/.../exec"
+                            style="width:100%; padding:10px; border-radius:6px; background:#111; color:#fff; border:1px solid #444; margin-top:5px;">
+
+                        <button type="button" class="action-btn" onclick="window.toggleGasTutorial()"
+                            style="margin-top:10px; font-size:0.9rem; padding:8px 12px; background:#333; color:#4CAF50; border:1px solid #4CAF50;">
+                            📖 點我看攻略：如何建立免費 Google 雲端備份？
+                        </button>
+
+                        <div id="gas-tutorial-box"
+                            style="display:none; background:#1a1a1a; border:1px dashed #555; border-radius:8px; padding:15px; margin-top:10px; font-size:0.9rem; line-height:1.6;">
+                            <h4 style="color:var(--accent); margin-top:0; margin-bottom:10px;">🎁 打造專屬 Google Webhook
+                                雲端硬碟</h4>
+                            <p style="margin-bottom:10px; color:#ccc;">只要 3 個步驟，免註冊複雜伺服器，免費把 Google 試算表變成專屬的備份中心：</p>
+
+                            <ol style="padding-left:20px; color:#ddd; margin-bottom:10px;">
+                                <li>開啟一個全新的 Google 試算表，點擊上方選單 <b>[擴充功能] -> [Apps Script]</b>。</li>
+                                <li>貼上以下這段為您專門優化的程式碼：</li>
+                            </ol>
+
+                            <div style="position:relative; margin-bottom:10px;">
+                                <textarea id="gas-code-block" readonly
+                                    style="width:100%; height:180px; background:#000; color:#0f0; font-family:monospace; font-size:0.8rem; padding:10px; border:1px solid #444; border-radius:6px; resize:none;">
+function doPost(e) {
+  try {
+    var payload = JSON.parse(e.postData.contents);
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Backup") || SpreadsheetApp.getActiveSpreadsheet().insertSheet("Backup");
+    if (payload.action === 'upload') {
+      sheet.getRange("A1").setValue(JSON.stringify(payload.data));
+      return ContentService.createTextOutput(JSON.stringify({success: true, message: "備份成功"})).setMimeType(ContentService.MimeType.JSON);
+    }
+  } catch(err) {
+    return ContentService.createTextOutput(JSON.stringify({success: false, error: err.message})).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doGet(e) {
+  try {
+    if (e.parameter.action === 'download') {
+      var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Backup");
+      if(!sheet) throw new Error("尚未備份過資料");
+      var dataStr = sheet.getRange("A1").getValue();
+      if(!dataStr) throw new Error("無備份資料");
+      return ContentService.createTextOutput(JSON.stringify({success: true, data: JSON.parse(dataStr)})).setMimeType(ContentService.MimeType.JSON);
+    }
+  } catch(err) {
+    return ContentService.createTextOutput(JSON.stringify({success: false, error: err.message})).setMimeType(ContentService.MimeType.JSON);
+  }
+}</textarea>
+                                <button type="button" onclick="window.copyGasCode()"
+                                    style="position:absolute; top:8px; right:15px; background:rgba(255,255,255,0.2); color:#fff; border:none; padding:4px 10px; border-radius:4px; cursor:pointer; font-weight:bold; backdrop-filter:blur(2px);">
+                                    📋 複製程式碼
+                                </button>
+                            </div>
+
+                            <ol start="3" style="padding-left:20px; color:#ddd; margin-bottom:15px;">
+                                <li>點擊右上角 <b>[部署] -> [新增部署作業]</b> -> 類型選擇 <b>[網頁應用程式]</b>。<br>⚠️ <b>致命關鍵：</b>將「誰可以存取」設為
+                                    <b>[所有人]</b>，部署後就會拿到一串網址。
+                                </li>
+                                <li>把那串網址貼進上方的輸入框就完成了！</li>
+                            </ol>
+
+                            <div style="display:flex; gap:10px;">
+                                <button type="button" class="action-btn" onclick="window.shareGasTutorial()"
+                                    style="flex:1; background:#007BFF; border:none; margin:0; padding:10px;">📤
+                                    傳送/分享攻略</button>
+                                <button type="button" class="action-btn" onclick="window.toggleGasTutorial()"
+                                    style="flex:1; background:#555; border:none; margin:0; padding:10px;">收起面板</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="db-input-firebase" style="display:none;">
+                        <textarea id="custom-firebase-config" rows="4" placeholder='請貼上 Firebase Config JSON，例如：
+{
+  "apiKey": "AIzaSy...",
+  "projectId": "my-project"
+}' style="padding:10px; font-family:monospace;"></textarea>
+                    </div>
+
+                    <button class="action-btn" onclick="saveCustomDatabase()" style="margin-top: 5px;">🔌
+                        測試連線並儲存</button>
+                </div>
+                <div
+                    style="border:1px solid #444; border-radius:10px; padding:12px; margin-bottom:12px; background:rgba(33, 150, 243, 0.05);">
+                    <h3 style="margin:0 0 8px; font-size: 1rem; color:#2196F3; display:flex; align-items:center;">
+                        <span style="margin-right:6px;">☁️</span> 紀錄即時同步
+                    </h3>
+                    <p style="font-size:0.75rem; color:#aaa; margin-bottom:10px; line-height:1.4;">
+                        擲筊紀錄已自動連動。若有早期舊紀錄可點此補傳。</p>
+                    <button class="action-btn" onclick="window.uploadLegacyData()"
+                        style="background:#2196F3; margin:0; width:100%; padding: 8px; font-size: 0.85rem;">☁️
+                        一鍵同步舊紀錄</button>
+                </div>
+
+                <div
+                    style="border:1px solid #444; border-radius:10px; padding:12px; margin-bottom:12px; background:rgba(156, 39, 176, 0.05);">
+                    <h3 style="margin:0 0 8px; font-size: 1rem; color:#9C27B0; display:flex; align-items:center;">
+                        <span style="margin-right:6px;">🌌</span> 雲端全機備份
+                    </h3>
+                    <p style="font-size:0.75rem; color:#aaa; margin-bottom:10px; line-height:1.4;">
+                        備份神明清單、自訂籤詩與圖片。換機可還原。
+                    </p>
+                    <div style="display:flex; gap:8px;">
+                        <button class="action-btn" onclick="if(window.triggerCloudBackup) triggerCloudBackup()"
+                            style="background:#673AB7; flex:1; margin:0; padding:8px; font-size:0.85rem;">☁️
+                            備份</button>
+                        <button class="action-btn"
+                            onclick="if(window.restoreSystemFromCloud) window.restoreSystemFromCloud()"
+                            style="background:#9C27B0; flex:1; margin:0; padding:8px; font-size:0.85rem;">☁️
+                            還原</button>
+                    </div>
+                </div>
+
+                <div
+                    style="border:1px solid #444; border-radius:10px; padding:12px; background:rgba(0, 150, 136, 0.05);">
+                    <h3 style="margin:0 0 8px; font-size: 1rem; color:#009688; display:flex; align-items:center;">
+                        <span style="margin-right:6px;">📥</span> 本機實體檔案
+                    </h3>
+                    <p style="font-size:0.75rem; color:#aaa; margin-bottom:10px; line-height:1.4;">將全機資料下載為 JSON
+                        檔案存放在手機內。</p>
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                        <button class="action-btn" onclick="exportAllData()"
+                            style="background:#009688; margin:0; padding: 8px; font-size: 0.85rem;">📥 匯出</button>
+                        <button class="secondary-btn" onclick="document.getElementById('importFile').click()"
+                            style="margin:0; padding: 8px; font-size: 0.85rem; border-color: #009688; color: #009688;">📤
+                            匯入</button>
+                    </div>
+                    <input type="file" id="importFile" accept=".json" style="display:none"
+                        onchange="importAllData(event)">
+                </div>
+
+            </div>
+        </div>
+
+        <div id="page-manage-systems" class="page">
+            <h3>管理自訂籤詩</h3>
+            <div id="manage-system-list" style="margin-top:15px;"></div>
+            <div
+                style="margin-top:20px; padding:15px; background:#3e2723; border-radius:8px; border:1px solid #f44336;">
+                <h4 style="color:#f44336; margin-top:0;">⚠️ 注意事項</h4>
+                <p style="color:#ccc; font-size:0.9rem; margin-bottom:0;"> 1. 刪除系統後，該動作<strong
+                        style="color:#fff;">無法復原</strong>。<br> 2. 原本連結該系統的神明，將自動恢復為預設籤詩 (白沙屯拱天宮101首)。<br> 3.
+                    內建系統無法刪除。
+                </p>
+            </div>
+        </div>
+        <!-- 🌟 拔除所有 style，完全交給系統 CSS 去決定高度與滾動 🌟 -->
+        <div id="page-manual-add" class="page">
+
+            <!-- 🌟 吸頂區塊 (Sticky Header) 🌟 -->
+            <div
+                style="position: sticky; top: 0; background: var(--bg-color); z-index: 10; padding-bottom: 1px; margin-bottom: 1px; border-bottom: 1px solid #333;">
+                <!--<h3 style="margin-top:0; margin-bottom:10px;">手動新增紀錄</h3>-->
+                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                    <button id="btn-manual-normal" class="secondary-btn"
+                        style="margin:0; flex: 1 1 45%; padding: 8px 4px; font-size: 0.9rem;"
+                        onclick="switchManualType('normal')">📜 一般求籤</button>
+                    <button id="btn-manual-deity" class="secondary-btn"
+                        style="margin:0; flex: 1 1 45%; padding: 8px 4px; font-size: 0.9rem;"
+                        onclick="switchManualType('deity')">🙏 神明求籤</button>
+                    <button id="btn-manual-ask" class="secondary-btn"
+                        style="margin:0; flex: 1 1 45%; padding: 8px 4px; font-size: 0.9rem;"
+                        onclick="switchManualType('ask')">🌙 問事擲筊</button>
+                    <button id="btn-manual-compare" class="secondary-btn"
+                        style="margin:0; flex: 1 1 45%; padding: 8px 4px; font-size: 0.9rem;"
+                        onclick="switchManualType('compare')">⚖️ 比較擲筊</button>
+                </div>
+                <input type="hidden" id="manual-type" value="一般求籤">
+            </div>
+
+            <!-- 🌟 中間表單區 (完全沒有任何高度限制，自然往下長) 🌟 -->
+            <div>
+                <!-- 日期時間 -->
+                <div class="form-group" style="margin-bottom:15px;">
+                    <label style="font-size:0.85rem; margin-bottom:2px; color:var(--accent);">紀錄日期與時間</label>
+                    <input type="datetime-local" id="manual-date"
+                        style="margin-bottom:0; padding:8px; font-size:0.9rem;">
+                </div>
+
+                <!-- [一般求籤區] -->
+                <div id="manual-normal-area"
+                    style="display:none; background:#222; padding:10px; border-radius:8px; margin-bottom:10px; border:1px solid #444;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label style="font-size: 0.85rem; margin-bottom: 2px;">神明聖號 (選填，無輸入則為一般求籤)</label>
+                        <input type="text" id="manual-normal-deity" placeholder="例如：土地公"
+                            style="margin-bottom: 0; padding: 8px;">
+                    </div>
+                </div>
+
+                <!-- [神明求籤/問事/比較 共用的選神明區塊] -->
+                <div id="manual-deity-area"
+                    style="display:none; text-align:center; background:#222; padding:10px; border-radius:8px; margin-bottom:10px; border:1px dashed var(--accent);">
+                    <label style="font-size:0.85rem; color:#aaa; margin-bottom:5px; display:block;">歸屬神明
+                        (選填)</label>
+                    <input type="hidden" id="manual-selected-deity-id">
+                    <button type="button" class="action-btn" onclick="window.openDeityModal('manual')"
+                        style="background:#222; border:1px solid #555; color:var(--text); display:flex; align-items:center; justify-content:center; gap:10px; width:100%; margin:0; padding:8px;">
+                        <span id="btn-manual-icon" style="font-size:1.2rem; display:flex; align-items:center;">⛩️</span>
+                        <span id="btn-manual-name" style="font-size:1rem; font-weight:bold;">點擊選擇神明</span>
+                    </button>
+                </div>
+
+                <!-- [求籤共用：籤號與主旨] -->
+                <div id="manual-basic-area" style="display:none;">
+                    <div style="display: flex; gap: 10px;">
+                        <div class="form-group" style="flex: 1; margin-bottom: 10px;">
+                            <label style="font-size: 0.85rem; margin-bottom: 2px;">籤號</label>
+                            <input type="number" id="manual-lot" placeholder="無"
+                                style="margin-bottom: 0; padding: 10px;">
+                        </div>
+                        <div class="form-group" style="flex: 2; margin-bottom: 10px;">
+                            <label style="font-size: 0.85rem; margin-bottom: 2px;">求籤主旨</label>
+                            <input type="text" id="manual-subject" placeholder="問什麼事..."
+                                style="margin-bottom: 0; padding: 10px;">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- [問事擲筊區] -->
+                <div id="manual-ask-area"
+                    style="display:none; background:#222; padding:10px; border-radius:8px; margin-bottom:10px; border:1px solid #444;">
+                    <div style="display:flex; gap:10px;">
+                        <div class="form-group" style="flex:2; margin-bottom: 10px;">
+                            <label style="font-size: 0.85rem; margin-bottom: 2px; color:var(--accent);">問事內容</label>
+                            <input type="text" id="manual-ask-q" placeholder="請輸入問題..."
+                                style="margin-bottom: 0; padding: 8px;">
+                        </div>
+                        <div class="form-group" style="flex:1; margin-bottom: 10px;">
+                            <label style="font-size: 0.85rem; margin-bottom: 2px; color:var(--accent);">籤號(選填)</label>
+                            <input type="number" id="manual-ask-lot" placeholder="無"
+                                style="margin-bottom: 0; padding: 8px;">
+                        </div>
+                    </div>
+                    <label style="font-size: 0.85rem; margin-bottom: 5px; color:var(--accent); display:block;">輸入筊象
+                        (數量)</label>
+                    <div id="module-manual-ask-cups" style="display:flex; gap:10px; align-items:center;"></div>
+                </div>
+
+                <!-- [比較擲筊區] -->
+                <div id="manual-compare-area"
+                    style="display:none; background:#222; padding:10px; border-radius:8px; margin-bottom:10px; border:1px solid #444;">
+                    <div style="display:flex; align-items:center; margin-bottom: 10px;">
+                        <label
+                            style="font-size: 0.85rem; color:var(--accent); white-space:nowrap; margin-right:8px; margin-bottom:0;">比較主旨</label>
+                        <input type="text" id="manual-comp-subject" placeholder="例如：換工作..."
+                            style="margin-bottom: 0; padding: 6px; flex:1;">
+                    </div>
+
+                    <!-- 動態選項容器 -->
+                    <div id="manual-comp-rows"></div>
+
+                    <button class="secondary-btn" onclick="window.addManualCompRow('新增項目', true)"
+                        style="width:100%; margin-top:5px; padding:6px; font-size:0.85rem; border-style:dashed;">+
+                        新增比較項目</button>
+
+                    <div style="margin-top:10px; border-top:1px dashed #555; padding-top:10px;">
+                        <div
+                            style="display:flex; gap:5px; align-items:center; background:#111; padding:6px; border-radius:6px; border:1px solid #333;">
+                            <label
+                                style="font-size: 0.85rem; color:var(--accent); white-space:nowrap; margin:0;">求得籤號</label>
+                            <div id="module-manual-comp-cups" class="flex-center gap-2" style="margin-left:auto;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- [共用：備註] -->
+                <div class="form-group" style="display: flex; flex-direction: column; margin-bottom: 2px;">
+                    <label style="font-size: 0.85rem; margin-bottom: 2px;">備註細節</label>
+                    <textarea id="manual-note" rows="2" style="resize: none; margin-bottom: 0; padding: 10px;"
+                        placeholder="寫下紀錄細節..."></textarea>
+                </div>
+            </div>
+
+            <!-- 撐開底部空間，避免被吸底按鈕蓋住 -->
+            <div style="height: 120px; flex-shrink: 0;"></div>
+            <!-- 🌟 原汁原味的系統吸底類別 🌟 -->
+            <div class="sticky-bottom-bar">
+                <button class="action-btn" onclick="saveManualRecord()"
+                    style="margin: 0; width: 100%; font-size: 1.05rem; padding: 14px;">💾 儲存手動紀錄</button>
+            </div>
+        </div>
+        <div id="page-simple" class="page">
+            <!-- 問事擲筊：神明選擇區塊 -->
+            <div style="margin-bottom:5px; text-align:center;">
+                <select id="simple-deity-sel" onchange="window.handleDeityChangeForTools('simple')"
+                    style="display:none;"></select>
+
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <button type="button" class="action-btn" id="btn-simple-deity-main"
+                        onclick="window.openDeityModal('simple')"
+                        style="background:#222; border:1px solid #555; color:var(--text); display:flex; align-items:center; justify-content:center; gap:10px; flex:1; margin:0; padding:10px; position: relative; z-index: 10;">
+                        <span id="btn-simple-icon" style="font-size:1.5rem; display:flex; align-items:center;">⛩️</span>
+                        <span id="btn-simple-name" style="font-size:1.1rem; font-weight:bold;">點擊選擇神明</span>
+                    </button>
+                    <!-- ★ 縮小的送神按鈕 -->
+                    <button type="button" id="btn-simple-clear" class="secondary-btn"
+                        onclick="window.clearToolDeity('simple')"
+                        style="display:none; margin:0; padding:6px 12px; font-size:0.85rem; border-color:#f44336; color:#f44336; width:auto; flex-shrink:0;">送神</button>
+                </div>
+
+                <input type="text" id="simple-custom-deity" placeholder="請輸入神明聖號..."
+                    style="margin-top:10px; width:100%; border:1px solid var(--accent); background:#222; text-align:center; padding:8px; box-sizing:border-box;">
+            </div>
+            <div id="simple-deity-icon" style="display:none;"></div>
+
+            <!-- ★ 隱藏的問事主旨 -->
+            <input type="text" id="simple-global-sub" placeholder="本次問事主旨 (例如：換工作)"
+                style="display: none; font-size:1.1rem; font-weight:bold; color:var(--accent); border:1px solid var(--accent);">
+            <div id="simple-history-list" class="session-history-container"></div>
+            <!-- ★ 外層虛線框容器 (加入 id="simple-action-area" 供置頂對位) -->
+            <!-- ★ 外層虛線框容器 (加入 id="simple-action-area" 供置頂對位) -->
+            <div id="simple-action-area"
+                style="display:flex; flex-direction:column; padding: 5px 15px 15px 15px; border:1px dashed #555; background:#222; justify-content:flex-start; align-items:stretch; margin-bottom: 120px;">
+
+                <input type="text" id="simple-q-text" placeholder="輸入問題/稟報內容..." style="margin-bottom:10px !important;">
+
+                <!-- 🌟 第一層頁籤 (超乾淨) 🌟 -->
+                <div class="tab-group" style="margin-bottom:5px;">
+                    <div class="tab-btn active" id="tab-ask" onclick="window.switchSimpleMode('ask')">💬 一般問事</div>
+                    <div class="tab-btn" id="tab-poem" onclick="window.switchSimpleMode('poem')">📜 祈求賜籤</div>
+                </div>
+
+                <!-- ⚓ 定位點 1：一般問事下方 -->
+                <div id="simple-times-ask-anchor" style="display:flex; justify-content:flex-end; margin-bottom: 10px;">
+                    <!-- 唯一共用的次數設定區塊實體 -->
+                    <div id="shared-simple-times-container" class="flex-center"
+                        style="display: inline-flex; border: 1px dashed var(--accent); background: rgba(255,179,0,0.05); border-radius: 8px; padding: 2px 10px; width: auto; height: 36px; align-items: center;">
+
+                        <span class="text-accent"
+                            style="font-size:0.85rem; margin-right:5px; white-space:nowrap;">擲</span>
+
+                        <!-- 模組容器：確保內部內容不換行 -->
+                        <div id="module-simple-times" style="display: flex; align-items: center;"></div>
+
+                        <span class="text-muted" style="margin-left:5px; white-space:nowrap;">次</span>
+                    </div>
+                </div>
+
+                <!-- 🌟 2. 賜籤設定區塊 (已模組化淨空) 🌟 -->
+                <div id="simple-poem-settings" style="display:none; margin-bottom:10px;"></div>
+
+                <div id="simple-denied-msg"
+                    style="display:none; color:var(--accent); font-weight:bold; text-align:center; padding:10px; background:rgba(255,179,0,0.1); border:1px solid var(--accent); border-radius:8px; margin-bottom:10px;">
+                    【本問題未獲允諾賜籤，請向神明詳細說明再請示。】
+                </div>
+                <div id="simple-cup-rows"></div>
+            </div>
+
+
+            <div class="sticky-bottom-bar" style="padding: 10px 15px; border-top: 1px solid #444;">
+                <!-- 第一排：確認與重置按鈕 -->
+                <div style="display:flex; gap:10px; margin-bottom: 10px;">
+                    <!-- ★ 加上 window. 前綴確保絕對能呼叫到 -->
+                    <button type="button" class="action-btn" onclick="window.saveSimpleBlock()"
+                        style="margin:0; flex:2; font-size:1rem; padding:12px;">確認並記錄此段結果</button>
+                    <button type="button" class="secondary-btn" onclick="window.resetSimple()"
+                        style="margin:0; flex:1; font-size:1rem; padding:12px;">重置</button>
+                </div>
+                <!-- 第二排：結束並儲存總紀錄 -->
+                <!-- ★ 加上 window. 前綴確保絕對能呼叫到 -->
+                <button type="button" class="action-btn" onclick="window.commitSimpleSession()"
+                    style="background:#4CAF50; font-size:1.15rem; padding:15px; margin:0; width:100%;">💾
+                    結束問事並儲存紀錄</button>
+            </div>
+        </div>
+        <div id="page-compare" class="page">
+            <!-- 比較擲筊：神明選擇區塊 -->
+            <div id="compare-setup"
+                style="display:flex; flex-direction:column; justify-content:center; gap:5px; padding:10px; margin-bottom: 120px;">
+                <div style="width:100%; text-align:center; margin-bottom:15px;">
+                    <select id="compare-deity-sel" onchange="window.handleDeityChangeForTools('compare')"
+                        style="display:none;"></select>
+
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <button type="button" class="action-btn" id="btn-compare-deity-main"
+                            onclick="window.openDeityModal('compare')"
+                            style="background:#222; border:1px solid #555; color:var(--text); display:flex; align-items:center; justify-content:center; gap:10px; flex:1; margin:0; padding:10px;">
+                            <span id="btn-compare-icon"
+                                style="font-size:1.5rem; display:flex; align-items:center;">⛩️</span>
+                            <span id="btn-compare-name" style="font-size:1.1rem; font-weight:bold;">點擊選擇神明</span>
+                        </button>
+                        <!-- 🌟 修復處：這裡原本多貼了一次 onclick，已經清乾淨了 -->
+                        <button type="button" id="btn-compare-clear" class="secondary-btn"
+                            onclick="window.clearToolDeity('compare')"
+                            style="display:none; margin:0; padding:6px 12px; font-size:0.85rem; border-color:#f44336; color:#f44336; width:auto; flex-shrink:0;">送神</button>
+                    </div>
+
+                    <!-- 神明聖號輸入框 -->
+                    <input type="text" id="compare-custom-deity" placeholder="輸入神明聖號..."
+                        style="margin-top:10px; width:100%; border:1px solid var(--accent); background:#222; text-align:center; padding:8px; box-sizing:border-box;">
+                    <div id="compare-deity-icon" style="display:none;"></div>
+                </div>
+
+                <input type="text" id="comp-subject" placeholder="比較主題 (例如：換工作)" style="width:100%;">
+
+                <div id="comp-options" style="width:100%; max-height:25vh; overflow-y:auto;">
+                    <div class="compare-row"> <input type="text" placeholder="選項 1" class="comp-opt"> </div>
+                    <div class="compare-row"> <input type="text" placeholder="選項 2" class="comp-opt"> </div>
+                </div>
+                <div style="width:100%; display:flex; gap:8px; align-items: center;">
+
+                    <!-- 左側按鈕：flex: 1 確保佔用 50% -->
+                    <button class="secondary-btn" onclick="addOption()"
+                        style="flex: 1; margin: 0; height: 38px; white-space: nowrap; padding: 0;">
+                        + 選項
+                    </button>
+
+                    <!-- 右側調整區塊：flex: 1 佔用另外 50%，並強制內部置中、加上外框 -->
+                    <div
+                        style="flex: 1; display: flex; align-items: center; justify-content: center; background: #222; border-radius: 8px; border: 1px solid #555; height: 38px; gap: 5px; box-sizing: border-box;">
+
+                        <span style="color: #aaa; white-space: nowrap; font-size: 0.85rem;">各擲</span>
+
+                        <!-- 數字調節器模組 -->
+                        <div id="module-comp-times" style="display: flex; align-items: center;"></div>
+
+                        <span style="color: #aaa; white-space: nowrap; font-size: 0.85rem;">次</span>
+
+                    </div>
+
+                </div>
+                <div style="width:100%; display: flex; gap: 5px; flex-wrap: wrap; margin-top:5px;">
+                    <button id="btn-compare-app" class="action-btn" onclick="startCompareStepByStep()"
+                        style="flex: 1 1 100%; background:var(--accent); color:#000;">開始擲筊</button>
+                    <button id="btn-compare-table" class="action-btn" onclick="startTableMode()"
+                        style="background: #2e7d32; flex: 1;">📝 表列擲筊</button>
+                    <button id="btn-compare-batch" class="action-btn" onclick="runCompareBatch()"
+                        style="background: #555; flex: 1;">⚡ 一次擲完</button>
+                </div>
+
+                <button type="button" class="secondary-btn" onclick="window.resetCompare()"
+                    style="width:100%; color:#aaa; border-color:#555; margin-top:10px;">🗑️ 重置頁面</button>
+            </div>
+            <div id="compare-step-panel" style="display:none; text-align: center;">
+                <div style="color:#aaa;">
+                    第 <span id="step-opt-idx">1</span> 個選項
+                </div>
+                <div style="font-size:1.5rem; color:var(--accent); font-weight:bold; margin:10px 0;" id="step-opt-name">
+                    選項名稱
+                </div>
+                <div class="cup-display" id="step-cup-res" style="font-size: 1.5rem; padding: 10px;">
+                    準備
+                </div>
+                <div style="margin-top: 10px; letter-spacing: 5px; font-size: 1.2rem;" id="step-history"></div>
+                <div style="margin-top: 10px; color: #aaa;">
+                    已擲 <span id="step-throw-count">0</span> / <span id="step-throw-target">3</span> 次
+                </div> <button class="action-btn" id="step-throw-btn" onclick="throwCompareOne()">擲筊</button>
+                <button class="action-btn" id="step-next-btn" onclick="nextCompareOption()" style="display:none;">下一個
+                    ❯</button> <button class="action-btn" id="step-finish-btn" onclick="finishCompareStep()"
+                    style="display:none;">查看結果</button>
+            </div>
+            <div id="compare-table-panel"
+                style="display:none; flex-direction:column; justify-content:center; gap:5px; padding:10px; margin-bottom: 120px;">
+
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                    <h3 style="margin:0; color:var(--accent);" id="table-opt-name">選項</h3> <span
+                        style="font-size:0.8rem; color:#aaa;">選項 <span id="table-opt-idx">1</span>/<span
+                            id="table-opt-total">1</span></span>
+                </div>
+                <div class="table-input-row" style="border-bottom: 2px solid #666; font-weight: bold; color: #ddd;">
+                    <div class="table-idx">
+                        次數
+                    </div>
+                    <div style="flex:1; text-align:center;">
+                        結果
+                    </div>
+                </div>
+                <div id="table-rows-container">
+                </div> <button class="action-btn" onclick="nextTableStep()">下一步 / 完成</button> <button
+                    class="secondary-btn" onclick="resetCompare()" style="margin-top:10px;">取消</button>
+            </div>
+            <!-- 比較擲筊的結果與追問區 -->
+            <div id="comp-result-area" style="display:none;">
+
+                <!-- 1. 結果文字區 (壓縮 padding 與 margin) -->
+                <div id="comp-result-content"
+                    style="margin-bottom: 8px; background:#1a1a1a; padding:10px; border-radius:8px; border:1px solid #444;">
+                </div>
+
+                <!-- 2. 無縫接軌的追問區塊 (壓縮標題的上下間距) -->
+                <h4
+                    style="color:var(--accent); border-bottom:1px solid #444; padding-bottom:5px; margin-top:10px; margin-bottom:5px;">
+                    後續追問</h4>
+
+                <!-- 強制縮減追問紀錄底下的空白 (加上 margin-bottom: 5px !important) -->
+                <div id="comp-fu-history" class="session-history-container"
+                    style="max-height:30vh; overflow-y:auto; margin-bottom:5px !important;"></div>
+
+                <!-- ★ 加入 id="comp-fu-action-area" 供置頂對位用 -->
+                <div id="comp-fu-action-area"
+                    style="background:#222; padding:10px; border-radius:8px; border:1px dashed #555; margin-bottom: 100px;">
+
+                    <input type="text" id="comp-fu-q-text" placeholder="輸入追問問題或稟報內容..."
+                        style="margin-bottom:8px !important; padding:8px;">
+
+                    <div class="tab-group" style="margin-bottom:8px;">
+                        <div class="tab-btn active" id="comp-fu-tab-ask" onclick="window.switchCompFuMode('ask')">💬
+                            問事
+                        </div>
+                        <div class="tab-btn" id="comp-fu-tab-poem" onclick="window.switchCompFuMode('poem')">📜 祈求賜籤
+                        </div>
+                    </div>
+                    <div id="comp-fu-poem-settings" style="display:none; margin-bottom:10px;"></div>
+
+                    <!-- 補回遺失的追問次數設定區塊 -->
+                    <div id="comp-fu-times-config"
+                        style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+                        <span style="color:#ddd; font-weight:bold; font-size:0.9rem;">設定擲筊次數：</span>
+                        <div
+                            style="display:flex; align-items:center; background:#000; border-radius:6px; border:1px solid #555; padding:2px 10px;">
+                            <button type="button"
+                                onclick="window.adjustNumber('comp-fu-times', -1, 1, 20, 'renderCompFuRows')"
+                                style="background:transparent; border:none; color:#aaa; font-size:1.2rem; padding:0 12px; height:28px; cursor:pointer;">-</button>
+                            <input type="number" id="comp-fu-times" value="1" min="1" max="20"
+                                style="width:40px; border:none; background:transparent; margin:0; text-align:center; font-weight:bold; font-size:1.1rem; color:var(--accent);"
+                                onchange="window.renderCompFuRows()">
+                            <button type="button"
+                                onclick="window.adjustNumber('comp-fu-times', 1, 1, 20, 'renderCompFuRows')"
+                                style="background:transparent; border:none; color:var(--accent); font-size:1.2rem; padding:0 12px; height:28px; cursor:pointer;">+</button>
+                            <span style="color:#888; margin-left:5px;">次</span>
+                        </div>
+                    </div>
+
+                    <div id="comp-fu-denied-msg"
+                        style="display:none; color:var(--accent); font-weight:bold; text-align:center; padding:10px; background:rgba(255,179,0,0.1); border:1px solid var(--accent); border-radius:8px; margin-bottom:10px; font-size:0.85rem;">
+                        【未獲允諾賜籤，請向神明詳細說明再請示。】</div>
+                    <div id="comp-fu-rows"></div>
+                    <div id="comp-fu-poem-warn"
+                        style="display:none; color:#f44336; font-weight:bold; text-align:center; padding:8px; background:rgba(244,67,54,0.1); border-radius:6px; border:1px solid #f44336; margin-bottom:10px;">
+                        【未獲允准，請重新抽籤】</div>
+                </div>
+
+                <!-- 吸底列維持原樣 -->
+                <div id="compare-sticky-bottom" class="sticky-bottom-bar"
+                    style="display:none; padding: 10px 15px; border-top: 1px solid #444;">
+                    <div style="display:flex; gap:10px; margin-bottom: 10px;">
+                        <button class="action-btn" onclick="window.saveCompFuBlock()"
+                            style="margin:0; flex:2; font-size:1rem; padding:12px;">確認並記錄此段結果</button>
+                        <button class="secondary-btn" onclick="window.clearCompFuBlock()"
+                            style="margin:0; flex:1; font-size:1rem; padding:12px;">重置重抽</button>
+                    </div>
+                    <button class="action-btn" onclick="window.commitCompareWithFu()"
+                        style="background:#4CAF50; font-size:1.15rem; padding:15px; margin:0; width:100%;">💾
+                        結束比較並儲存紀錄</button>
+                </div>
+            </div>
+        </div>
+        <div id="toast-container">提示訊息</div>
+        <div id="smart-scroll-group">
+            <div id="btn-scroll-up" class="scroll-fab" onclick="handleSmartScroll('up')">🔝</div>
+            <div id="btn-scroll-down" class="scroll-fab hint-down" onclick="handleSmartScroll('down')">⏬</div>
+        </div>
+        <div id="quick-add-deity-modal" class="modal-overlay" style="z-index: 10002;">
+            <div class="modal-content" style="max-width: 320px;">
+                <button class="modal-close" onclick="closeQuickAddModal()">×</button>
+                <h3 style="color:var(--accent); margin-top:0; border-bottom:1px solid #444; padding-bottom:10px;">✍️
+                    快速新增神明</h3>
+
+                <div class="form-group">
+                    <label>神明聖號</label>
+                    <input type="text" id="quick-deity-name" placeholder="例如：土地公" style="margin-bottom:10px;">
+                </div>
+                <div class="form-group">
+                    <label>籤詩系統 (可選)</label>
+                    <select id="quick-deity-system" style="margin-bottom:10px;"></select>
+                </div>
+                <div class="form-group">
+                    <label>確認聖杯數</label>
+                    <input type="number" id="quick-deity-saint-target" value="3" min="1" max="10"
+                        style="margin-bottom:15px;">
+                </div>
+                <div style="display:flex; gap:10px; margin-bottom:10px; margin-top:15px;">
+                    <button class="action-btn" onclick="saveQuickAddDeity(false)"
+                        style="flex:1; padding: 10px; font-size:0.95rem;">暫時使用</button>
+                    <button class="secondary-btn" onclick="closeQuickAddModal()"
+                        style="flex:1; margin-top:0; padding: 10px; font-size:0.95rem;">取消</button>
+                </div>
+                <button class="action-btn" onclick="saveQuickAddDeity(true)"
+                    style="background:var(--accent); color:#000; margin-top:0; font-size:1.05rem;">列入神明列位</button>
+            </div>
+        </div>
+    </main>
+    <!-- ★ 紀錄修改視窗 (Swipe 修改按鈕專用) -->
+    <div id="record-edit-modal" class="modal-overlay" style="z-index: 10005; display: none;">
+        <div class="modal-content" style="max-width:320px;">
+            <button class="modal-close"
+                onclick="document.getElementById('record-edit-modal').style.display='none'">×</button>
+            <h3 style="color:var(--accent); margin-top:0;">修改紀錄歸屬</h3>
+            <input type="hidden" id="edit-rec-id">
+
+            <div class="form-group" style="display:flex; gap:10px; margin-bottom:10px;">
+                <div style="flex:1;">
+                    <label>紀錄類型</label>
+                    <select id="edit-rec-category" style="width: 100%; padding: 8px;"></select>
+                </div>
+                <div style="flex:1;">
+                    <label>歸屬神明</label>
+                    <select id="edit-rec-deity" style="width: 100%; padding: 8px;"></select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>籤號 (無抽籤請填 - )</label>
+                <input type="text" id="edit-rec-lot" placeholder="例如：8"
+                    style="text-align:center; font-weight:bold; width: 100%; padding: 8px; box-sizing: border-box;">
+            </div>
+
+            <button type="button" class="action-btn" onclick="window.saveRecordHeaderEdit()"
+                style="margin-top:15px; width: 100%;">💾 儲存修改</button>
+        </div>
+    </div>
+    <!-- 1. 隱藏的神明選擇視窗 -->
+    <div id="deity-select-modal" class="modal-overlay" style="z-index: 10001; display: none;">
+        <div class="modal-content">
+            <button type="button" class="modal-close"
+                onclick="document.getElementById('deity-select-modal').style.display='none'">×</button>
+            <h3 style="text-align:center; color:var(--accent); margin-top:0;">請選擇神明</h3>
+            <div id="modal-deity-selection-list" class="grid-menu"
+                style="grid-template-columns: repeat(3, 1fr); gap: 10px;">
+                <!-- JS 會在這裡動態生成神明卡片 -->
+            </div>
+            <button type="button" class="action-btn" style="width:100%; margin-top:15px; background:#444;"
+                onclick="window.openQuickAddModal(window.currentDeityTool)">✍️ 臨時自訂神明</button>
+        </div>
+    </div>
+    <!-- ★ 終極神明賜籤視窗 (整合請示、籤筒、三聖杯) -->
+    <div id="mini-draw-modal" class="modal-overlay" style="z-index: 10005; display: none;">
+        <div class="modal-content" style="text-align:center;">
+            <!-- 刪除了右上的 X 按鈕 -->
+            <h3 style="color:var(--accent); margin-top:0;">神明賜籤</h3>
+
+            <!-- 【階段 1】請示神明區塊 -->
+            <div id="mini-draw-perm-area" style="display:none;">
+                <div id="mini-perm-icon"
+                    style="margin: 15px 0; display:flex; justify-content:center; align-items:center;"></div>
+                <div style="font-size:1rem; margin-bottom:15px; font-weight:bold;">弟子/信女懇請神明賜籤指點迷津</div>
+                <div id="mini-perm-cup-res"
+                    style="height:80px; display:flex; justify-content:center; align-items:center; margin-bottom:15px;">
+                    <span style="font-size:2.5rem; opacity:0.2;">🙏</span>
+                </div>
+                <!-- 未獲允諾時的選項 -->
+                <div id="mini-perm-failed-actions"
+                    style="display:none; flex-direction:column; gap:10px; margin-bottom:10px;">
+                    <div
+                        style="color:var(--accent); font-weight:bold; font-size:0.85rem; background:rgba(255,179,0,0.1); padding:8px; border-radius:6px; border:1px solid var(--accent);">
+                        未獲允諾賜籤，請向神明詳細說明再請示
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <button type="button" class="action-btn" onclick="window.resetMiniPermission()"
+                            style="flex:1; margin:0;">繼續求籤</button>
+                        <button type="button" class="secondary-btn" onclick="window.closeMiniDraw()"
+                            style="flex:1; margin:0;">返回</button>
+                    </div>
+                </div>
+                <button type="button" class="action-btn" id="btn-mini-perm-toss" onclick="window.tossMiniPermission()"
+                    style="margin:0; width:100%;">🙏 誠心擲筊請示</button>
+            </div>
+
+            <!-- 【階段 2】籤筒區塊 -->
+            <div id="mini-draw-cylinder-area" style="display:none;">
+                <div id="mini-draw-instruction"
+                    style="color:var(--accent); font-weight:bold; font-size:1.1rem; margin-bottom:10px; display:none;">
+                    👇壓住撥動、鬆開抽籤👇</div>
+                <div id="mini-draw-area"
+                    style="min-height: 120px; display: flex; justify-content: center; align-items: center;">
+                    <span style="font-size:4rem;" class="shake-anim">🏺</span>
+                </div>
+                <div style="display:flex; gap:10px; margin-top:10px;">
+                    <button type="button" class="secondary-btn" onclick="window.closeMiniDraw()"
+                        style="flex:1; margin:0;">返回</button>
+                    <button type="button" class="action-btn" id="btn-mini-draw" onclick="window.executeMiniDrawResult()"
+                        style="flex:2; margin:0;">開始抽籤</button>
+                </div>
+            </div>
+
+            <!-- 【階段 3】三聖杯確認區塊 -->
+            <div id="mini-draw-confirm-area" style="display:none;">
+                <div id="mini-draw-result"
+                    style="font-size:3rem; font-weight:bold; color:var(--accent); margin: 10px 0;"></div>
+                <p style="color:#aaa; font-size:0.9rem; margin-bottom:5px;">請擲筊確認 (需連續 <span
+                        id="mini-draw-target-saint">3</span> 聖筊)</p>
+                <div style="font-size:1.2rem; color:#fff; margin-bottom:15px;">目前：<span id="mini-draw-saint-count"
+                        style="color:var(--accent); font-weight:bold; font-size:1.5rem;">0</span> 聖筊</div>
+                <div id="mini-draw-cup-res"
+                    style="height:70px; display:flex; justify-content:center; align-items:center; margin-bottom:15px; font-size:2rem; font-weight:bold;">
+                    準備</div>
+
+                <!-- 擲筊確認失敗選項 -->
+                <div id="mini-confirm-failed-actions"
+                    style="display:none; flex-direction:column; gap:10px; margin-bottom:10px;">
+                    <div
+                        style="color:#f44336; font-weight:bold; font-size:0.85rem; background:rgba(244,67,54,0.1); padding:8px; border-radius:6px; border:1px solid #f44336;">
+                        未獲允准，請重新抽籤
+                    </div>
+                    <div style="display:flex; gap:10px;">
+                        <button type="button" class="action-btn" onclick="window.resetMiniCylinder()"
+                            style="flex:1; margin:0;">繼續求籤</button>
+                        <button type="button" class="secondary-btn" onclick="window.closeMiniDraw()"
+                            style="flex:1; margin:0;">返回</button>
+                    </div>
+                </div>
+
+                <button type="button" class="action-btn" id="btn-mini-toss" onclick="window.tossMiniConfirm()"
+                    style="width:100%; margin:0;">🙏 擲筊請示</button>
+            </div>
+        </div>
+    </div>
+    <div id="history-edit-modal" class="modal-overlay" style="z-index: 10006; display: none;">
+        <div class="modal-content" style="max-width: 360px;">
+            <button class="modal-close" onclick="window.closeHistoryEditModal()">×</button>
+            <h3 style="color:var(--accent); margin-top:0; border-bottom:1px solid #444; padding-bottom:10px;">✏️
+                編輯紀錄</h3>
+
+            <div class="form-group">
+                <label style="color:#aaa;">問題 / 稟報內容</label>
+                <textarea id="edit-history-q" rows="3"
+                    style="width:100%; background:#111; color:#fff; border:1px solid var(--accent); padding:8px; border-radius:6px; font-size:0.95rem; box-sizing:border-box;"></textarea>
+            </div>
+
+            <div class="form-group" style="margin-bottom:0;">
+                <label style="color:#aaa; display:block; margin-bottom:5px;">擲筊結果 (點擊回復可修改)</label>
+                <div id="edit-history-cups-container"
+                    style="max-height: 30vh; overflow-y: auto; overflow-x: hidden; padding-right: 5px;">
+                    <!-- JS 動態產生筊杯列 -->
+                </div>
+            </div>
+
+            <div style="display:flex; gap:10px; margin-top:20px;">
+                <button class="action-btn" onclick="window.saveHistoryEdit()" style="margin:0; flex:2;">💾
+                    儲存修改</button>
+                <button class="secondary-btn" onclick="window.closeHistoryEditModal()"
+                    style="margin:0; flex:1;">取消</button>
+            </div>
+        </div>
+    </div>
+    <script src="./deitypoem/Mazu.js"></script>
+    <script src="./deitypoem/Baishatun_Mazu.js"></script>
+    <script src="./deitypoem/Baosheng.js"></script>
+    <script src="./deitypoem/Shouzhi.js"></script>
+
+    <script src="./deitypoem/Kongming.js"></script>
+
+    <script src="./deitypoem/Leiyushi.js"></script>
+    <script src="./deitypoem/Yucing.js"></script>
+    <script src="./deitypoem/Shengxian.js"></script>
+
+    <script src="./deitypoem/Xuantian.js"></script>
+
+    <script src="./deitypoem/Guanyin.js"></script>
+
+    <script src="./deitypoem/Jiazi.js"></script>
+    <script src="./fortune_data_manager.js"></script>
+    <script src="./sync_fortune.js"></script>
+    <script src="./fortune_app.js"></script>
+    <script src="./fortune_ui.js"></script>
+    <script type="module" src="firebase-config_fortune.js"></script>
+    <script src="./fortune_engine.js"></script>
+    <script src="./fortune_tools.js"></script>
+    <script src="./fortune_deitypoem.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js"></script>
+    <script type="module" src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js"></script>
+    <script src="/tools/html2canvas.min.js"></script>
+    <script src="/tools/Sortable.min.js"></script>
+    <script src="/tools/localforage.min.js"></script>
+
+    <script>
+        // 🌟 終極版：防鍵盤擠壓、防翻轉失誤的真實高度快照
+        let initialWidth = window.innerWidth;
+
+        function setAppHeight() {
+            // 【防禦 1】如果是手機瀏覽器，且「寬度沒變」，代表是虛擬鍵盤彈出/收起，絕對不要重算高度！
+            if (window.innerWidth === initialWidth && document.documentElement.style.getPropertyValue('--vh')) {
+                return;
+            }
+
+            // 計算真實 1vh
+            let vh = window.innerHeight * 0.01;
+            document.documentElement.style.setProperty('--vh', `${vh}px`);
+
+            // 更新寬度基準
+            initialWidth = window.innerWidth;
+        }
+
+        // 網頁一載入立刻執行快照
+        setAppHeight();
+
+        // 【防禦 2】當螢幕改變大小（例如翻轉）時，延遲 100 毫秒再抓，確保瀏覽器已經轉正
+        window.addEventListener('resize', () => {
+            setTimeout(setAppHeight, 100);
+        });
+
+        window.addEventListener('load', function () {
+            console.log("網頁資源載入完畢，準備強制啟動 APP...");
+
+            if (typeof initApp === 'function') {
+                initApp(); // 強制呼叫啟動函式
+            } else {
+                console.error("❌ 找不到 initApp 函式！請檢查 fortune_app.js 是否有存檔並成功載入。");
+
+                // 鐵壁防護：就算找不到函式，也強制把遮罩拿掉，讓你至少能看到畫面
+                const splash = document.getElementById('app-splash-screen');
+                if (splash) splash.style.display = 'none';
+            }
+        });
+    </script>
+    <script>
+        // 註冊 Service Worker (解除註解)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./fortune_sw.js')
+                    .then(reg => console.log('SW 註冊成功'))
+                    .catch(err => console.log('SW 註冊失敗', err));
+            });
+        }
+    </script>
+</body>
+
+</html>
