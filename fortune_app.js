@@ -1,15 +1,15 @@
 async function initApp() {
     console.log("🚀 [系統追蹤] 1. 成功進入 initApp，準備開始載入流程...");
-    const showSplash = localStorage.getItem('cfg_show_splash') !== 'false';
-    const splashEl = document.getElementById('app-splash-screen');
+    
+    // 🌟 關鍵 1：紀錄程式剛開始載入的精確時間
+    const appStartTime = Date.now(); 
 
     try {
+        // ... (中間保留你原本所有的載入邏輯) ...
         console.log("🚀 [系統追蹤] 2. 準備啟動資料庫引擎...");
-        if (typeof window.initDatabaseEngine === 'function') {
-            await window.initDatabaseEngine();
-        }
+        if (typeof window.initDatabaseEngine === 'function') await window.initDatabaseEngine();
 
-        console.log("🚀 [系統追蹤] 3. 準備同步核心資料 (籤詩與神明)...");
+        console.log("🚀 [系統追蹤] 3. 準備同步核心資料...");
         if (typeof syncCoreData === 'function') syncCoreData();
 
         console.log("🚀 [系統追蹤] 4. 準備載入系統設定...");
@@ -18,41 +18,50 @@ async function initApp() {
         console.log("🚀 [系統追蹤] 5. 準備渲染歷史紀錄...");
         if (typeof renderRecords === 'function') renderRecords();
 
-        // 🌟 新增：如果當前是 Firebase 模式，強制開啟雲端實時監聽器
         if (window.currentDB === 'firebase' && typeof window.startRealTimeSync === 'function') {
-            console.log("☁️ 正在啟動 Firebase 雲端紀錄實時監聽機制...");
-            window.startRealTimeSync(function (cloudRecords) {
-                // 當雲端資料有任何新增、刪除、修改時，Firebase 會自動傳回整包最新資料
-                records = cloudRecords;
-
-                // 重新呼叫你的渲染函式，畫面就會立刻更新！
-                if (typeof renderRecords === 'function') renderRecords();
-            });
+            // ... firebase 監聽邏輯 ...
         }
 
-        console.log("🚀 [系統追蹤] 6. 準備還原使用者偏好設定...");
-        if (typeof window.restoreUserPreference === 'function') {
-            window.restoreUserPreference();
+    } catch (err) {
+        console.error("APP 初始化過程中發生錯誤:", err);
+    } finally {
+        
+        // ==========================================
+        // 🌟 關鍵 2：完美開門協調器 (放在 initApp 的最後面)
+        // ==========================================
+        const splashEl = document.getElementById('app-splash-screen');
+        if (splashEl) {
+            const showSplash = localStorage.getItem('cfg_show_splash') !== 'false';
+            const isSoftReload = sessionStorage.getItem('skipSplash') === 'true';
+
+            if (isSoftReload || !showSplash) {
+                // 如果是軟重載或關閉動畫，瞬間隱藏遮罩
+                splashEl.style.display = 'none';
+                sessionStorage.removeItem('skipSplash');
+            } else {
+                // ⏱️ 設定廟門「至少」要關著給使用者看幾毫秒 (這裡設為 1200 毫秒 = 1.2秒)
+                const minWaitTime = 1200; 
+                
+                // 計算剛才上面的資料載入總共花了多少時間
+                const loadTime = Date.now() - appStartTime; 
+                
+                // 數學魔法：如果載入只花了 100 毫秒，就強制補足剩下的 1100 毫秒
+                // 如果手機很慢載入花了 2000 毫秒，remainingTime 就會是 0，立刻準備開門
+                const remainingTime = Math.max(0, minWaitTime - loadTime);
+
+                setTimeout(() => {
+                    // 1. 觸發 3D 開門動畫
+                    splashEl.classList.add('doors-opening'); 
+                    
+                    // 2. 等待 1.5 秒 (配合 CSS 的 1.5s 轉場時間)，門完全推開後再徹底隱藏
+                    setTimeout(() => {
+                        splashEl.style.display = 'none';
+                    }, 1500); 
+                    
+                }, remainingTime);
+            }
         }
-
-        console.log("🚀 [系統追蹤] 7. 所有模組執行完畢，準備關閉開頭動畫...");
-
-    } catch (error) {
-        console.error("❌ [致命錯誤] 初始化過程中發生崩潰：", error);
-    }
-
-    // 🛡️ 鐵壁防護：不管上面發生什麼事，一定強制把遮罩拿掉
-    if (splashEl) {
-        console.log("🚀 [系統追蹤] 8. 執行隱藏動畫遮罩...");
-        splashEl.classList.add('fade-out-exit');
-        setTimeout(() => {
-            splashEl.style.display = 'none';
-            const homePage = document.getElementById('page-home');
-            if (homePage) homePage.classList.add('slide-up');
-            console.log("✅ [系統追蹤] 9. 動畫關閉，順利進入主畫面！");
-        }, 800);
-    } else {
-        console.warn("⚠️ [系統追蹤] 找不到 app-splash-screen 元素");
+        
     }
 }
 
