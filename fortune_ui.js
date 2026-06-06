@@ -1619,3 +1619,33 @@ window.smartSaveAndBack = function () {
         window.goBack();
     }
 };
+
+// ==========================================
+    // 🚀 1. 雙階段啟動遮罩控制中心 (3D 廟門升級版)
+    // ==========================================
+    // 在 DOMContentLoaded 內部找到 splashEl 控制區塊
+    const splashEl = document.getElementById('app-splash-screen');
+    if (splashEl) {
+        const isSoftReload = sessionStorage.getItem('skipSplash') === 'true';
+        const showSplash = localStorage.getItem('cfg_show_splash') !== 'false';
+
+        // 如果是軟重載，或者設定關閉動畫，直接拔除遮罩
+        if (isSoftReload || !showSplash) {
+            splashEl.style.display = 'none';
+            sessionStorage.removeItem('skipSplash'); // 用完立刻清除記號
+        } else {
+            // 取得使用者設定的停留秒數
+            const durStart = parseFloat(localStorage.getItem('cfg_splash_dur_start')) || 1.5;
+
+            // 停留指定秒數後，觸發「開廟門」動畫
+            setTimeout(() => {
+                splashEl.classList.add('doors-opening');
+                
+                // 等待門完全推開 (配合 CSS 的 1.5s 動畫時間)
+                setTimeout(() => {
+                    splashEl.style.display = 'none'; // 動畫播完後徹底隱藏，釋放點擊穿透
+                }, 1500); 
+                
+            }, durStart * 1000);
+        }
+    }
