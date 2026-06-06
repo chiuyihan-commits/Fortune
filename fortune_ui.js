@@ -1220,28 +1220,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // ==========================================
-    // 🚀 1. 雙階段啟動遮罩控制中心 (優先執行視覺回饋)
-    // ==========================================
-    // 在 DOMContentLoaded 內部找到 splashEl 控制區塊
-    const splashEl = document.getElementById('app-splash-screen');
-    if (splashEl) {
-        // 🌟 新增：檢查是否為返回首頁觸發的重載
-        const isSoftReload = sessionStorage.getItem('skipSplash') === 'true';
-        const showSplash = localStorage.getItem('cfg_show_splash') !== 'false';
-
-        // 如果是軟重載，或者設定關閉動畫，直接拔除遮罩
-        if (isSoftReload || !showSplash) {
-            splashEl.style.display = 'none';
-            sessionStorage.removeItem('skipSplash'); // 用完立刻清除記號
-        } else {
-            // 原本的雙階段動畫邏輯...
-            const durStart = parseFloat(localStorage.getItem('cfg_splash_dur_start')) || 1.5;
-            const durEnd = parseFloat(localStorage.getItem('cfg_splash_dur_end')) || 1.0;
-            // (保持你原本的 setTimeout 腳本不變)
-        }
-    }
-
-    // ==========================================
     // ⚙️ 2. 系統核心與路由初始化
     // ==========================================
     if (typeof initAll === 'function') {
