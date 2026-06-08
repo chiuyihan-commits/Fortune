@@ -174,7 +174,7 @@ bridgeVariable('isDeityEditMode', () => AppState.editor.isDeityEditMode, val => 
 bridgeVariable('currentDeityTool', () => AppState.editor.currentDeityTool, val => AppState.editor.currentDeityTool = val);
 bridgeVariable('currentMiniDrawTarget', () => AppState.editor.currentMiniDrawTarget, val => AppState.editor.currentMiniDrawTarget = val);
 
-function saveSettings() {
+window.saveSettings = function() {
     // 讀取一般設定
     const chkSkip = document.getElementById('chk-skip');
     if (chkSkip) settings.skip = chkSkip.checked;
@@ -218,6 +218,19 @@ function saveSettings() {
     // 儲存擲筊結果呈現方式
     const cupDispMode = document.querySelector('input[name="cup-display-mode"]:checked');
     if (cupDispMode) settings.cupDisplayMode = cupDispMode.value;
+
+    // 🌟 整合新增：儲存開場提詞設定
+    const chkSplashText = document.getElementById('chk-show-splash-text');
+    if (chkSplashText) settings.showSplashText = chkSplashText.checked;
+
+    const inpSplashText = document.getElementById('input-splash-text');
+    if (inpSplashText) {
+        if (inpSplashText.value.trim() !== '') {
+            settings.splashText = inpSplashText.value.trim();
+        } else {
+            delete settings.splashText; // 確保清空時不會留下空字串
+        }
+    }
 
     // 寫入瀏覽器記憶體
     localStorage.setItem('zb_settings', JSON.stringify(settings));
@@ -1040,3 +1053,121 @@ if (typeof window.sendDataToWebhook !== 'function') {
         if (typeof showToast === 'function') showToast("⚠️ GAS 傳送模組未載入");
     };
 }
+
+// ==========================================
+// ⛩️ 自訂開場廟門處理引擎
+// ==========================================
+
+// 1. 處理使用者上傳門神圖片
+window.uploadCustomDoor = function(e, side) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // 呼叫現有的壓縮函式 (門神圖片需要清晰一點，所以設定寬度上限 600px，品質 0.8)
+    if (typeof compressImage === 'function') {
+        if (typeof showToast === 'function') showToast("⏳ 圖片處理中...");
+        
+        compressImage(file, 600, 0.8, (base64Img) => {
+            try {
+                localStorage.setItem('custom_door_' + side, base64Img);
+                if (typeof showToast === 'function') showToast(`✅ ${side === 'left' ? '左' : '右'}門神上傳成功！`);
+                applyCustomDoors(); // 立即套用更新畫面
+            } catch (err) {
+                if (typeof showToast === 'function') showToast("❌ 空間不足，請清除一些暫存圖片");
+            }
+        });
+    }
+    
+    e.target.value = ''; // 清空 input 讓下次選同張圖也能觸發
+};
+
+// 2. 還原為系統預設廟門與開場提詞開啟方式
+window.resetCustomDoors = function() {
+    // 1. 清空圖片的 localStorage
+    localStorage.removeItem('custom_door_left');
+    localStorage.removeItem('custom_door_right');
+    
+    // 🌟 2. 整合新增：從 settings 物件中刪除提詞設定
+    delete settings.showSplashText;
+    delete settings.splashText;
+    
+    // 3. 呼叫你既有的函式，讓它自動存檔並刷新畫面
+    if (typeof saveSettings === 'function') saveSettings();
+    if (typeof loadSettings === 'function') loadSettings();
+    if (typeof applyCustomDoors === 'function') applyCustomDoors();
+
+    if (typeof showToast === 'function') showToast("🗑️ 已還原預設開場廟門與設定");
+};
+
+// 3. 將圖片動態渲染，並加入「白底去背、邊緣取色與完美預載」終極魔法
+window.applyCustomDoors = async function() {
+    const leftDoor = document.querySelector('.temple-door.left');
+    const rightDoor = document.querySelector('.temple-door.right');
+    const doorsContainer = document.getElementById('temple-doors-container');
+    
+    // 🎨 建立「智慧取色與渲染引擎」(改寫為 Promise，回報處理進度)
+    const applyWithSmartColor = (door, imgSrc) => {
+        return new Promise((resolve) => {
+            if (!door) return resolve(); // 找不到門就直接跳過
+
+            const img = new Image();
+            // 👇 加上這行鐵壁防禦！允許跨網域分析圖片像素，確保取色絕對成功
+            img.crossOrigin = "Anonymous";
+            img.onload = function() {
+                const cvs = document.createElement('canvas');
+                cvs.width = 10; cvs.height = 10;
+                const ctx = cvs.getContext('2d');
+                ctx.drawImage(img, 0, 0, 10, 10);
+                
+                const p = ctx.getImageData(1, 1, 1, 1).data;
+                
+                let bgLayer = "linear-gradient(135deg, #a71d2a 0%, #7b101d 100%)"; 
+                let blendMode = "normal"; 
+                
+                if (p[3] > 250) { 
+                    if (p[0] > 240 && p[1] > 240 && p[2] > 240) {
+                        bgLayer = "linear-gradient(135deg, #a71d2a 0%, #7b101d 100%)";
+                        blendMode = "multiply"; 
+                    } else {
+                        const bgColor = `rgb(${p[0]}, ${p[1]}, ${p[2]})`;
+                        bgLayer = `linear-gradient(135deg, ${bgColor} 0%, ${bgColor} 100%)`;
+                        blendMode = "normal";
+                    }
+                }
+                
+                door.style.backgroundImage = `url('${imgSrc}'), ${bgLayer}`;
+                door.style.backgroundBlendMode = blendMode; 
+                door.classList.add('has-custom-img');
+                
+                resolve(); // 🌟 報告老闆！這扇門的圖片處理完畢！
+            };
+            img.onerror = function() {
+                // 圖片破圖時，退回純淨的 CSS 朱紅門
+                door.style.backgroundImage = ''; 
+                door.style.backgroundBlendMode = 'normal';
+                door.classList.remove('has-custom-img'); 
+                
+                resolve(); // 🌟 報告老闆！這扇門沒有圖片，但已準備好紅底！
+            };
+            img.src = imgSrc;
+        });
+    };
+
+    // 判斷要用上傳的圖片還是內建的圖片
+    const getImgSrc = (side) => {
+        const customImg = localStorage.getItem('custom_door_' + side);
+        return customImg ? customImg : `./deitypoem/door_god_${side}.jpg`;
+    };
+
+    // 🌟 魔法核心：Promise.all (並行處理)
+    // 讓左門跟右門「同時」去載入圖片並分析顏色，等待「兩邊都回報完成」才繼續往下走
+    await Promise.all([
+        applyWithSmartColor(leftDoor, getImgSrc('left')),
+        applyWithSmartColor(rightDoor, getImgSrc('right'))
+    ]);
+
+    // 🌟 當上面兩扇門都 100% 準備好的瞬間，把容器顯示出來！
+    if (doorsContainer) {
+        doorsContainer.style.opacity = '1';
+    }
+};
