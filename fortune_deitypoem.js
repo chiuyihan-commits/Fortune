@@ -701,11 +701,26 @@ window.selectDeityFromModal = function (deityId) {
                 if (d) {
                     const btnName = document.getElementById('btn-manual-name');
                     const btnIcon = document.getElementById('btn-manual-icon');
+                    
                     if (btnName) btnName.innerText = d.name;
-                    if (btnIcon && typeof window.getDeityIconHtml === 'function') btnIcon.innerHTML = window.getDeityIconHtml(d.id);
+                    
+                    // 💡【核心修正】：改用系統標準的 getIconHtml(d) 來產生正確的圖片標籤或 Emoji
+                    if (btnIcon) {
+                        if (typeof window.getIconHtml === 'function') {
+                            // 加上縮放樣式，避免圖片太大把按鈕撐壞
+                            const rawHtml = window.getIconHtml(d);
+                            // 用簡單正則表達式或 CSS 控制圖片大小，確保相容按鈕高度
+                            btnIcon.innerHTML = rawHtml.replace('<img', '<img style="width:24px; height:24px; border-radius:50%; object-fit:cover; margin-right:5px;"');
+                        } else {
+                            btnIcon.innerText = d.emoji || '⛩️';
+                        }
+                    }
                 }
             } else {
-                window.handleDeityChangeForTools();
+                // 如果是問事或比較模式，觸發它們專屬的更新邏輯
+                if (typeof window.handleDeityChangeForTools === 'function') {
+                    window.handleDeityChangeForTools();
+                }
             }
         }
     } catch (e) { console.error("選擇神明發生錯誤:", e); }
@@ -746,7 +761,8 @@ window.handleDeityImage = function (e) {
 
 window.refreshSelectDeityList = function () {
     // 1. 動態判斷：如果是彈出視窗開啟中，就渲染到彈出視窗；否則渲染到主頁面
-    const isModalOpen = document.getElementById('deity-select-modal').style.display === 'flex';
+    // (保險起見，多加一個 === 'block' 的判斷)
+    const isModalOpen = document.getElementById('deity-select-modal').style.display === 'flex' || document.getElementById('deity-select-modal').style.display === 'block';
     const containerId = isModalOpen ? 'modal-deity-selection-list' : 'deity-selection-list';
     const container = document.getElementById(containerId);
 
@@ -769,14 +785,11 @@ window.refreshSelectDeityList = function () {
             e.preventDefault(); e.stopPropagation();
 
             if (isModalOpen) {
-                // 情境 A：在問事/比較工具的彈出視窗中點擊
-                const tool = window.currentDeityTool || 'simple';
-                const selEl = document.getElementById(`${tool}-deity-sel`);
-                if (selEl) {
-                    selEl.value = d.id;
-                    if (typeof window.handleDeityChangeForTools === 'function') window.handleDeityChangeForTools(tool);
+                // 💡 【核心修正】：不要在這裡自己寫死邏輯了！
+                // 直接呼叫上面那段已經寫好的 selectDeityFromModal，讓它統一處理！
+                if (typeof window.selectDeityFromModal === 'function') {
+                    window.selectDeityFromModal(d.id);
                 }
-                document.getElementById('deity-select-modal').style.display = 'none';
             } else {
                 // 情境 B：在「神明求籤」的主頁面中點擊，直接進入求籤模式
                 if (typeof startDeityQiuqian === 'function') startDeityQiuqian(d.id);
