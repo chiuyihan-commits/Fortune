@@ -851,6 +851,42 @@ window.openManualAdd = function () {
     const now = new Date();
     const localDateTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
     document.getElementById('manual-date').value = localDateTime;
+    
+    // 💡【修正問題 1】：進來時主動呼叫選單產生器，確保手動頁面的神明選單能正常載入
+    if (typeof populateSimpleCompareDeities === 'function') {
+        populateSimpleCompareDeities();
+    }
+    
+    // 💡【修正問題 3】：徹底清空所有文字輸入框，避免上一筆紀錄殘留
+    const fieldsToClear = [
+        'manual-normal-deity', 'manual-lot', 'manual-subject', 'manual-note',
+        'manual-ask-q', 'manual-ask-lot', 'manual-comp-subject', 'manual-comp-lot'
+    ];
+    fieldsToClear.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+
+    // 💡【修正問題 3】：將擲筊手動輸入的數字計數框全部重置回 0
+    const numberFields = [
+        'manual-ask-s', 'manual-ask-l', 'manual-ask-c',
+        'manual-comp-lot-s', 'manual-comp-lot-l', 'manual-comp-lot-c'
+    ];
+    numberFields.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '0';
+    });
+
+    // 💡【修正問題 3】：重置比較模式的自訂項目列表（清除舊按鈕與自訂輸入，還原成 2 個乾淨的初始白單）
+    const compRows = document.getElementById('manual-comp-rows');
+    if (compRows) {
+        compRows.innerHTML = '';
+        if (typeof window.addManualCompRow === 'function') {
+            window.addManualCompRow('選項 1', false);
+            window.addManualCompRow('選項 2', false);
+        }
+    }
+
     window.switchManualType('normal');
     goTo('manual-add');
 };
@@ -1597,33 +1633,3 @@ window.smartSaveAndBack = function () {
         window.goBack();
     }
 };
-
-// ==========================================
-    // 🚀 1. 雙階段啟動遮罩控制中心 (3D 廟門升級版)
-    // ==========================================
-    // 在 DOMContentLoaded 內部找到 splashEl 控制區塊
-    const splashEl = document.getElementById('app-splash-screen');
-    if (splashEl) {
-        const isSoftReload = sessionStorage.getItem('skipSplash') === 'true';
-        const showSplash = localStorage.getItem('cfg_show_splash') !== 'false';
-
-        // 如果是軟重載，或者設定關閉動畫，直接拔除遮罩
-        if (isSoftReload || !showSplash) {
-            splashEl.style.display = 'none';
-            sessionStorage.removeItem('skipSplash'); // 用完立刻清除記號
-        } else {
-            // 取得使用者設定的停留秒數
-            const durStart = parseFloat(localStorage.getItem('cfg_splash_dur_start')) || 1.5;
-
-            // 停留指定秒數後，觸發「開廟門」動畫
-            setTimeout(() => {
-                splashEl.classList.add('doors-opening');
-                
-                // 等待門完全推開 (配合 CSS 的 1.5s 動畫時間)
-                setTimeout(() => {
-                    splashEl.style.display = 'none'; // 動畫播完後徹底隱藏，釋放點擊穿透
-                }, 1500); 
-                
-            }, durStart * 1000);
-        }
-    }
