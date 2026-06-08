@@ -15,9 +15,10 @@
 </head>
 
 <body>
-    <div id="app-splash-screen" style="position:fixed; top:0; left:0; width:100%; height:100%; z-index:99999; perspective: 1200px; overflow: hidden; background: transparent; pointer-events: none;">
-        
-        <div id="temple-doors-container" style="position:absolute; width:100%; height:100%; display:flex; transform-style: preserve-3d;">
+    <div id="app-splash-screen" style="position:fixed; top:0; left:0; width:100%; height:100%; z-index:99999; perspective: 1200px; overflow: hidden; background: #111; transition: background-color 0.8s ease;">
+
+        <div id="temple-doors-container"
+            style="position:absolute; width:100%; height:100%; display:flex; transform-style: preserve-3d; opacity: 0; transition: opacity 0.3s ease;">
             <div class="temple-door left">
                 <div class="door-ring"></div>
             </div>
@@ -26,9 +27,13 @@
             </div>
         </div>
 
-        <div id="splash-text-content" style="position:absolute; top:0; left:0; width:100%; height:100%; display:flex; flex-direction:column; justify-content:center; align-items:center; transition: all 0.8s ease;">
-            <div class="splash-breathe" style="font-size: 6rem; margin-bottom: 20px; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5));">🏮</div>
-            <div class="splash-breathe" style="color: var(--accent); font-size: 1.5rem; font-weight: bold; letter-spacing: 3px; text-shadow: 2px 2px 8px rgba(0,0,0,0.8);">神機天啟，恭迎聖駕...</div>
+        <div id="splash-text-content"
+            style="position:absolute; top:0; left:0; width:100%; height:100%; display:none; flex-direction:column; justify-content:center; align-items:center; transition: all 0.8s ease;">
+            <div class="splash-breathe"
+                style="font-size: 6rem; margin-bottom: 20px; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5));">🏮</div>
+            <div id="splash-dynamic-text" class="splash-breathe"
+                style="color: var(--accent); font-size: 1.5rem; font-weight: bold; letter-spacing: 3px; text-shadow: 2px 2px 8px rgba(0,0,0,0.8);">
+            </div>
         </div>
 
     </div>
@@ -187,6 +192,28 @@
                         <button class="secondary-btn" onclick="clearDeityBg()"
                             style="margin-top:5px;font-size:0.8rem; padding:5px;">移除圖片</button>
                     </div>
+                </div>
+                <div class="menu-card compact-card"
+                    style="grid-column: span 2; display:flex; flex-direction:column; gap:10px; cursor:default; min-height: 120px;">
+                    <h3 style="margin: 0; color: var(--accent);">⛩️ 自訂廟門神像</h3>
+                    <div style="display:flex; gap:10px; width:100%;">
+                        <label
+                            style="flex:1; background:#444; padding:10px; border-radius:8px; cursor:pointer; font-size:0.9rem; border: 1px solid #555;">
+                            左門神 📤
+                            <input type="file" accept="image/*" style="display:none;"
+                                onchange="uploadCustomDoor(event, 'left')">
+                        </label>
+                        <label
+                            style="flex:1; background:#444; padding:10px; border-radius:8px; cursor:pointer; font-size:0.9rem; border: 1px solid #555;">
+                            右門神 📤
+                            <input type="file" accept="image/*" style="display:none;"
+                                onchange="uploadCustomDoor(event, 'right')">
+                        </label>
+                    </div>
+                    <button onclick="resetCustomDoors()" class="secondary-btn"
+                        style="padding:6px; font-size:0.85rem; margin-top:5px; color:#f44336; border-color:#f44336; background: rgba(244,67,54,0.05);">
+                        🗑️ 還原預設廟門
+                    </button>
                 </div>
                 <div style="border-top:1px solid #444; margin:15px 0; padding-top:15px;">
                     <label style="color:var(--accent); font-size:0.9rem;">專屬籤筒 (選填)</label>
@@ -706,47 +733,67 @@
                             style="width:18px; height:18px;">
                     </div>
 
-                    <div style="display:flex; gap:8px;">
-                        <div
-                            style="flex:1; background:#111; padding:8px; border-radius:6px; border:1px dashed #444; text-align:center;">
-                            <div style="font-size:0.75rem; color:#888; margin-bottom:5px;">一：掛載中</div>
-                            <div id="prev-splash-start"
-                                style="height:40px; display:flex; align-items:center; justify-content:center; font-size:1.5rem;">
-                                🏮</div>
-                            <label class="secondary-btn"
-                                style="font-size:0.7rem; padding:2px 0; display:block; margin:5px 0;"><input type="file"
-                                    accept="image/*" onchange="window.handleSplashUpload(event, 'start')"
-                                    style="display:none;">上傳</label>
-                            <div class="capsule-input-sm">
-                                <button type="button"
-                                    onclick="window.adjustNumber('cfg-splash-dur-start', -0.01, 0.5, 5)">-</button>
-                                <input onclick="this.select()" type="number" id="cfg-splash-dur-start" value="1.50"
-                                    step="0.01" min="0.5" max="5"
-                                    style="width:48px; text-align:center; padding:4px 0; margin:0; background:transparent; color:var(--accent); font-weight:bold; border:none; font-size:0.85rem;"
-                                    onchange="window.validateDirectInput('cfg-splash-dur-start', 0.5, 5)">
-                                <button type="button"
-                                    onclick="window.adjustNumber('cfg-splash-dur-start', 0.01, 0.5, 5)">+</button>
+                    <div style="display:flex; flex-direction:column; gap:8px;">
+                        <div style="display:flex; gap:8px;">
+                            <div
+                                style="flex:1; background:#111; padding:8px; border-radius:6px; border:1px dashed #444; text-align:center;">
+                                <div style="font-size:0.75rem; color:#888; margin-bottom:5px;">一：掛載中</div>
+                                <div id="prev-splash-start"
+                                    style="height:40px; display:flex; align-items:center; justify-content:center; font-size:1.5rem;">
+                                    🏮</div>
+                                <label class="secondary-btn"
+                                    style="font-size:0.7rem; padding:2px 0; display:block; margin:5px 0;">
+                                    <input type="file" accept="image/*"
+                                        onchange="window.handleSplashUpload(event, 'start')" style="display:none;">上傳
+                                </label>
+                                <div class="capsule-input-sm">
+                                    <button type="button"
+                                        onclick="window.adjustNumber('cfg-splash-dur-start', -0.01, 0.5, 5)">-</button>
+                                    <input onclick="this.select()" type="number" id="cfg-splash-dur-start" value="1.50"
+                                        step="0.01" min="0.5" max="5"
+                                        style="width:48px; text-align:center; padding:4px 0; margin:0; background:transparent; color:var(--accent); font-weight:bold; border:none; font-size:0.85rem;"
+                                        onchange="window.validateDirectInput('cfg-splash-dur-start', 0.5, 5)">
+                                    <button type="button"
+                                        onclick="window.adjustNumber('cfg-splash-dur-start', 0.01, 0.5, 5)">+</button>
+                                </div>
+                            </div>
+
+                            <div
+                                style="flex:1; background:#111; padding:8px; border-radius:6px; border:1px dashed #444; text-align:center;">
+                                <div style="font-size:0.75rem; color:#888; margin-bottom:5px;">二：開幕轉場</div>
+                                <div id="prev-splash-end"
+                                    style="height:40px; display:flex; align-items:center; justify-content:center; font-size:1.5rem;">
+                                    ✨</div>
+                                <label class="secondary-btn"
+                                    style="font-size:0.7rem; padding:2px 0; display:block; margin:5px 0;">
+                                    <input type="file" accept="image/*"
+                                        onchange="window.handleSplashUpload(event, 'end')" style="display:none;">上傳
+                                </label>
+                                <div class="capsule-input-sm">
+                                    <button type="button"
+                                        onclick="window.adjustNumber('cfg-splash-dur-end', -0.01, 0.5, 5)">-</button>
+                                    <input onclick="this.select()" type="number" id="cfg-splash-dur-end" value="1.00"
+                                        step="0.01" min="0.5" max="5"
+                                        style="width:48px; text-align:center; padding:4px 0; margin:0; background:transparent; color:var(--accent); font-weight:bold; border:none; font-size:0.85rem;"
+                                        onchange="window.validateDirectInput('cfg-splash-dur-end', 0.5, 5)">
+                                    <button type="button"
+                                        onclick="window.adjustNumber('cfg-splash-dur-end', 0.01, 0.5, 5)">+</button>
+                                </div>
                             </div>
                         </div>
-                        <div
-                            style="flex:1; background:#111; padding:8px; border-radius:6px; border:1px dashed #444; text-align:center;">
-                            <div style="font-size:0.75rem; color:#888; margin-bottom:5px;">二：開幕轉場</div>
-                            <div id="prev-splash-end"
-                                style="height:40px; display:flex; align-items:center; justify-content:center; font-size:1.5rem;">
-                                ✨</div>
-                            <label class="secondary-btn"
-                                style="font-size:0.7rem; padding:2px 0; display:block; margin:5px 0;"><input type="file"
-                                    accept="image/*" onchange="window.handleSplashUpload(event, 'end')"
-                                    style="display:none;">上傳</label>
-                            <div class="capsule-input-sm">
-                                <button type="button"
-                                    onclick="window.adjustNumber('cfg-splash-dur-end', -0.01, 0.5, 5)">-</button>
-                                <input onclick="this.select()" type="number" id="cfg-splash-dur-end" value="1.00"
-                                    step="0.01" min="0.5" max="5"
-                                    style="width:48px; text-align:center; padding:4px 0; margin:0; background:transparent; color:var(--accent); font-weight:bold; border:none; font-size:0.85rem;"
-                                    onchange="window.validateDirectInput('cfg-splash-dur-end', 0.5, 5)">
-                                <button type="button"
-                                    onclick="window.adjustNumber('cfg-splash-dur-end', 0.01, 0.5, 5)">+</button>
+
+                        <div style="background:#111; padding:8px; border-radius:6px; border:1px dashed #444;">
+                            <div style="font-size:0.75rem; color:#888; margin-bottom:5px; text-align:center;">開場提詞文字
+                            </div>
+                            <div style="display:flex; align-items:center; gap:8px;">
+                                <label
+                                    style="display:flex; align-items:center; gap:5px; cursor:pointer; font-size: 0.8rem; color:#ccc; white-space:nowrap;">
+                                    <input type="checkbox" id="chk-show-splash-text"
+                                        onchange="window.saveSettings(); window.loadSettings();"> 顯示
+                                </label>
+                                <input type="text" id="input-splash-text" placeholder="預設：誠心準備中..." maxlength="12"
+                                    onchange="window.saveSettings(); window.loadSettings();"
+                                    style="flex:1; padding:6px 8px; border-radius:5px; border:1px solid #333; background:#222; color:#fff; font-size:0.85rem;">
                             </div>
                         </div>
                     </div>
@@ -909,7 +956,7 @@
                         <label
                             style="display: flex; align-items: center; gap: 5px; font-size: 0.85rem; cursor: pointer; flex: 1;">
                             <input type="radio" id="radio-mode-text" name="cup-display-mode" value="text"
-                                onchange="saveSettings()" style="margin: 0; width: 16px; height: 16px;">
+                                onchange="window.saveSettings()" style="margin: 0; width: 16px; height: 16px;">
                             <span>預設陰刻文字</span>
                         </label>
                         <label
@@ -993,7 +1040,7 @@
                 <label style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
                     <span style="font-weight:bold; color:var(--accent);">跳過請示是否賜籤</span>
                     <input type="checkbox" id="chk-skip" style="margin:0; width:18px; height:18px;"
-                        onchange="saveSettings()">
+                        onchange="window.saveSettings()">
                 </label>
                 <div style="font-size:0.75rem; color:#888; line-height:1.4;">勾選此選項，在一般抽籤可稟報後直接抽籤。</div>
             </div>
@@ -1001,7 +1048,7 @@
             <div style="display:flex; gap:10px; margin-bottom:15px;">
                 <div style="flex:1;">
                     <label style="font-size:0.85rem; margin-bottom:4px; display:block;">預設系統</label>
-                    <select id="sel-default-system" onchange="window.updateSystemTotalUI(); saveSettings()"
+                    <select id="sel-default-system" onchange="window.updateSystemTotalUI(); window.saveSettings()"
                         style="padding:8px; margin:0;"></select>
                 </div>
             </div>
@@ -1010,7 +1057,7 @@
                 style="background:#222; padding:10px; border-radius:8px; border:1px solid #444; transition: opacity 0.3s; margin-bottom:20px;">
                 <label class="flex-between; margin-bottom:0;">
                     <span style="font-size:0.85rem;">自訂籤支總數 (無系統時生效)</span>
-                    <input type="number" id="input-total-lot" placeholder="101" onchange="saveSettings()"
+                    <input type="number" id="input-total-lot" placeholder="101" onchange="window.saveSettings()"
                         style="width:60px; padding:6px; background:#111; color:#fff; border:1px solid #555; text-align:center; margin:0;">
                 </label>
             </div>
@@ -1024,11 +1071,11 @@
             <!-- 🌟 加入第三個選項按鈕 -->
             <div class="mode-btn-group" style="margin-bottom:10px; display:flex; gap:5px;">
                 <div id="btn-mode-timer" class="mode-btn" style="padding:8px; font-size:0.85rem; flex:1;"
-                    onclick="switchDrawMode('timer'); saveSettings();">⏱️ 秒數</div>
+                    onclick="switchDrawMode('timer'); window.saveSettings();">⏱️ 秒數</div>
                 <div id="btn-mode-touch" class="mode-btn" style="padding:8px; font-size:0.85rem; flex:1;"
-                    onclick="switchDrawMode('touch'); saveSettings();">👆 觸控</div>
+                    onclick="switchDrawMode('touch'); window.saveSettings();">👆 觸控</div>
                 <div id="btn-mode-tap" class="mode-btn" style="padding:8px; font-size:0.85rem; flex:1;"
-                    onclick="switchDrawMode('tap'); saveSettings();">✨ 感應</div>
+                    onclick="switchDrawMode('tap'); window.saveSettings();">✨ 感應</div>
             </div>
 
             <!-- 🌟 三種模式對應的提示/設定區 -->
@@ -1867,15 +1914,21 @@ function doGet(e) {
             setTimeout(setAppHeight, 100);
         });
 
-        window.addEventListener('load', function () {
+        // 👇 1. 這裡加上 async
+        window.addEventListener('load', async function () {
             console.log("網頁資源載入完畢，準備強制啟動 APP...");
 
+            // 🌟 啟動前先套用使用者的自訂廟門
+            if (typeof applyCustomDoors === 'function') {
+                // 👇 2. 這裡加上 await，強迫系統「死死等著門畫完」！
+                await applyCustomDoors();
+            }
+
+            // 系統一定會等上面的門 100% 上色完畢，才會走到這裡啟動 App
             if (typeof initApp === 'function') {
-                initApp(); // 強制呼叫啟動函式
+                initApp();
             } else {
                 console.error("❌ 找不到 initApp 函式！請檢查 fortune_app.js 是否有存檔並成功載入。");
-
-                // 鐵壁防護：就算找不到函式，也強制把遮罩拿掉，讓你至少能看到畫面
                 const splash = document.getElementById('app-splash-screen');
                 if (splash) splash.style.display = 'none';
             }
