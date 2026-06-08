@@ -682,7 +682,6 @@ window.saveDetailFuBlock = function () {
         return;
     }
 
-    // ⬇️ 這裡的 cups 全部改成 detailFuTempCups
     let saint = detailFuTempCups.filter(v => v === 1).length;
     let laugh = detailFuTempCups.filter(v => v === 0).length;
     let covered = detailFuTempCups.filter(v => v === -1).length;
@@ -706,7 +705,19 @@ window.saveDetailFuBlock = function () {
     if (qTextEl) qTextEl.value = "";
 
     if (typeof showToast === 'function') showToast("💾 追問紀錄已成功儲存！");
-    if (typeof openRecordDetail === 'function') openRecordDetail(currentDetailRecordId);
+    
+    // 💡【核心修改】：取代原本的 openRecordDetail(currentDetailRecordId)
+    // 改為局部刷新追問列表，並將畫面平滑滾動聚焦到剛新增的項目
+    if (typeof renderFollowUps === 'function') {
+        renderFollowUps(records[recIndex]);
+        
+        setTimeout(() => {
+            const list = document.getElementById('detail-fu-list');
+            if (list && list.lastElementChild) {
+                list.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }, 150);
+    }
 };
 
 window.autoThrowDetailFuRow = function (idx) {
@@ -1300,6 +1311,26 @@ window.loadSettings = function() {
         // 觸發 UI 顯示隱藏
         if (typeof window.toggleDbInput === 'function') window.toggleDbInput();
     }
+
+    // 🌟 整合新增：套用開場提詞到 3D 廟門與設定 UI 上
+    const textContainer = document.getElementById('splash-text-content');
+    const dynamicText = document.getElementById('splash-dynamic-text');
+    
+    // 從 settings 讀取設定 (如果沒設定過，預設為 true)
+    const isShow = settings.showSplashText === true
+    const customText = settings.splashText || '誠心準備中...';
+
+    // 1. 更新 3D 廟門的畫面
+    if (textContainer && dynamicText) {
+        textContainer.style.display = isShow ? 'flex' : 'none';
+        dynamicText.innerText = customText;
+    }
+
+    // 2. 同步更新設定頁面上的輸入框與開關狀態
+    const chkUI = document.getElementById('chk-show-splash-text');
+    const inpUI = document.getElementById('input-splash-text');
+    if (chkUI) chkUI.checked = isShow;
+    if (inpUI) inpUI.value = settings.splashText || '';
 
     // 7. 更新畫面與預覽
     if (typeof updateImagePreviews === 'function') updateImagePreviews();
