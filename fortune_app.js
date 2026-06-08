@@ -709,17 +709,15 @@ function openSystemList(sysId, title) {
 
 /* --- 9. 紀錄與設定 --- */
 function populateManualTypes() {
-    const sel = document.getElementById('manual-type');
-    if (!sel) return;
-    sel.innerHTML = `<option value="一般求籤">一般求籤</option>`;
-    deities.forEach(d => {
-        sel.innerHTML += `<option value="${d.name}">${d.name}</option>`;
-    });
-    sel.innerHTML += `<option value="問事">問事</option><option value="比較">比較擲筊</option>`;
+    // 💡【核心修正】：因為 manual-type 在 HTML 中已改為 input type="hidden"，
+    // 舊版塞 <option> 的邏輯會破壞網頁元件，在此直接清空防呆。
+    return; 
 }
 
 function populateSimpleCompareDeities() {
-    ['simple-deity-sel', 'compare-deity-sel'].forEach(id => {
+    // 💡【核心修正】：這裡只放畫面上真正的 <select> 下拉選單標籤！
+    // 絕對不能把隱藏輸入框 (manual-selected-deity-id) 放進來用 innerHTML 破壞
+    ['simple-deity-sel', 'compare-deity-sel', 'edit-rec-deity'].forEach(id => {
         const sel = document.getElementById(id);
         if (!sel) return;
         sel.innerHTML = '<option value="">(自訂神明/親臨聖前)</option>';
@@ -728,7 +726,7 @@ function populateSimpleCompareDeities() {
         });
     });
 
-    // ★ 加入這行：確保每次重置選單時，同步更新 Checkbox 隱藏與強制打勾的防呆狀態
+    // ★ 確保每次重置選單時，同步更新 Checkbox 隱藏與強制打勾的防呆狀態
     if (typeof handleDeityChangeForTools === 'function') {
         handleDeityChangeForTools();
     }
@@ -1424,14 +1422,14 @@ function saveFollowUp() {
             // ==========================================
 
             // 選項 A: 滾動到最頂端 (看到 Header)
-            if (mainEl) {
-                mainEl.scrollTo({ top: 0, behavior: 'instant' });
-            }
+            //if (mainEl) {
+            //    mainEl.scrollTo({ top: 0, behavior: 'instant' });
+            //}
 
-            // 選項 B: 滾動到剛新增的追問位置 (聚焦最新結果)
-            // if (list && list.lastElementChild) {
-            //     list.lastElementChild.scrollIntoView({ behavior: "smooth", block: "center" });
-            // }
+            //選項 B: 滾動到剛新增的追問位置 (聚焦最新結果)
+            if (list && list.lastElementChild) {
+                list.lastElementChild.scrollIntoView({ behavior: "smooth", block: "center" });
+            }
         });
     });
 }
