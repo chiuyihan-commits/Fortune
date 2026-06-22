@@ -217,8 +217,9 @@ window.saveBgSettings = function () {
 
 // 2. 升級還原預設的確認視窗 (加上 async/await 與 showConfirm)
 window.resetBgSettings = async function () {
-    // 改用美美的 confirm，注意前面一定要加 await
-    if (await showConfirm('確定要還原為預設的黑紅主題嗎？', '還原確認')) {
+    if (confirm('確定要還原為預設的黑紅主題嗎？')) {
+    //美美的 confirm，考量程式運作安全性捨去不用，注意前面一定要加 await
+    //if (await showConfirm('確定要還原為預設的黑紅主題嗎？', '還原確認')) {
         document.getElementById('global-header-color').value = '#d32f2f';
         document.getElementById('global-bg-color').value = '#1a1a1a';
         clearGlobalBg();
@@ -376,7 +377,8 @@ window.resetSimpleCupRow = async function (idx) {
 };
 
 window.deleteSimpleSessionItem = async function (index) {
-    if (!(await window.showConfirm("確定要刪除這筆問事紀錄嗎？", "刪除確認"))) return;
+    //if (!(await window.showConfirm("確定要刪除這筆問事紀錄嗎？", "刪除確認"))) return;
+    if (!confirm("確定要刪除這筆問事紀錄嗎？")) return;
     if (typeof simpleSessionHistory !== 'undefined') {
         simpleSessionHistory.splice(index, 1);
         window.renderSimpleHistory();
@@ -384,7 +386,8 @@ window.deleteSimpleSessionItem = async function (index) {
 };
 
 window.deleteCompFuItem = async function (index) {
-    if (!(await window.showConfirm("確定要刪除這筆追問紀錄嗎？", "刪除確認"))) return;
+    //if (!(await window.showConfirm("確定要刪除這筆追問紀錄嗎？", "刪除確認"))) return;
+    if (!confirm("確定要刪除這筆追問紀錄嗎？")) return;
     if (typeof compFuHistory !== 'undefined') {
         compFuHistory.splice(index, 1);
         window.renderCompFuHistory();
@@ -451,17 +454,16 @@ window.renderCompFuHistory = function () {
         }
 
         let cleanHtml = b.html ? b.html.replace('margin-top:5px;', 'margin-top:0;') : '';
+        // 🌟 新增解析時間
+        let timeHtml = b.time ? `<span style="margin-left:8px; font-weight:normal;">🕒 ${b.time}</span>` : '';
 
         c.innerHTML += `
             <div id="record-comp-${i}" class="session-block" style="padding:8px; background:rgba(255,255,255,0.08); position: relative;">
-                
                 ${editBtnHtml}
-                
                 <button data-html2canvas-ignore="true" onclick="window.deleteCompFuItem(${i})" style="position:absolute; right:8px; top:8px; background:transparent; border:none; color:#f44336; font-size:1.05rem; cursor:pointer; padding:0; line-height:1; opacity:0.8;">🗑️</button>
                 
-                <div style="font-size:0.75rem; color:#888; margin-bottom: 2px;">#${i + 1}</div>
-                <div class="q-text" style="font-size:0.9rem; margin-bottom:6px; padding-right: 80px;">問：${b.question}</div>
-                
+                <div style="font-size:0.75rem; color:#888; margin-bottom: 2px;">#${i + 1} ${timeHtml}</div>
+                <div class="q-text" style="font-size:0.9rem; margin-bottom:6px; padding-right: 80px;">問：${b.question}</div>        
                 <div style="display:flex; align-items:center; flex-wrap:wrap; gap:8px;">
                     <div class="a-text" style="font-size:0.85rem; margin:0;">答：${b.result}</div>
                     ${cleanHtml ? `<div style="color:#555; font-size:0.9rem;">|</div> <div style="display:flex; align-items:center;">${cleanHtml}</div>` : ''}
@@ -851,12 +853,12 @@ window.openManualAdd = function () {
     const now = new Date();
     const localDateTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
     document.getElementById('manual-date').value = localDateTime;
-    
+
     // 💡【修正問題 1】：進來時主動呼叫選單產生器，確保手動頁面的神明選單能正常載入
     if (typeof populateSimpleCompareDeities === 'function') {
         populateSimpleCompareDeities();
     }
-    
+
     // 💡【修正問題 3】：徹底清空所有文字輸入框，避免上一筆紀錄殘留
     const fieldsToClear = [
         'manual-normal-deity', 'manual-lot', 'manual-subject', 'manual-note',
@@ -1032,7 +1034,8 @@ window.saveManualRecord = function () {
         for (let i = 0; i < l; i++) simulatedDetails.push(0);
         for (let i = 0; i < c; i++) simulatedDetails.push(-1);
 
-        finalFollowUps = [{ question: questionText, result: `${s}聖 ${l}笑 ${c}蓋`, details: simulatedDetails }];
+        // 🌟 修正：補上 time 屬性，使用該筆手動紀錄設定好的 finalDate
+        finalFollowUps = [{ question: questionText, result: `${s}聖 ${l}笑 ${c}蓋`, details: simulatedDetails, time: finalDate }];
     }
     // 🛑 【比較擲筊】防呆：必須至少有1個選項名稱、杯數至少1個
     else if (typeBase === '比較擲筊') {
@@ -1142,7 +1145,9 @@ if (window.currentDeity && window.currentDeity.emoji && window.currentDeity.emoj
 
 // 全能重置函數：還原「啟動、過場、結果」所有相關設定
 window.resetAllAnimationSettings = async function () {
-    const confirmed = await window.showConfirm(
+    //精美的showConfim視窗，考量程式運作安全性捨去不用
+    //const confirmed = await window.showConfirm(
+    const confirmed = confirm(
         "確定要將所有「啟動遮罩」、「擲筊過場」與「結果停留」的圖片與秒數全部還原為預設嗎？",
         "重置所有動畫設定"
     );
@@ -1201,7 +1206,9 @@ window.handleSplashUpload = function (event, phase) {
 // ==========================================
 // 1. 僅還原所有自訂圖片 (GIF/Base64)
 window.resetAnimImagesOnly = async function () {
-    if (!(await window.showConfirm("確定要清除所有自訂的啟動圖示與擲筊動畫圖片嗎？", "還原圖案預設"))) return;
+    if (!confirm("確定要清除所有自訂的啟動圖示與擲筊動畫圖片嗎？")) return;
+    //精美的showConfim視窗，考量程式運作安全性捨去不用
+    //if (!(await window.showConfirm("確定要清除所有自訂的啟動圖示與擲筊動畫圖片嗎？", "還原圖案預設"))) return;
 
     const imgKeys = [
         'custom_splash_logo_start',
@@ -1220,7 +1227,9 @@ window.resetAnimImagesOnly = async function () {
 
 // 2. 僅還原所有時間設定 (秒數)
 window.resetDurationsOnly = async function () {
-    if (!(await window.showConfirm("確定要將所有啟動停留、動畫播放與結果停留的秒數恢復為預設嗎？", "還原秒數預設"))) return;
+    if (!confirm("確定要將所有啟動停留、動畫播放與結果停留的秒數恢復為預設嗎？")) return;
+    //精美的showConfim視窗，考量程式運作安全性捨去不用
+    //if (!(await window.showConfirm("確定要將所有啟動停留、動畫播放與結果停留的秒數恢復為預設嗎？", "還原秒數預設"))) return;
 
     const timeKeys = [
         'cfg_splash_dur_start',
@@ -1260,6 +1269,12 @@ document.addEventListener('DOMContentLoaded', function () {
     // ==========================================
     if (typeof initAll === 'function') {
         initAll();
+    }
+
+    // 🌟 👉 這是你要新增的：讀取同步開關的初始設定 👈 🌟
+    const syncToggle = document.getElementById('chk-realtime-sync');
+    if (syncToggle) {
+        syncToggle.checked = localStorage.getItem('cfg_realtime_sync') !== 'false';
     }
 
     if (window.location.hash) {
@@ -1455,7 +1470,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             // Step 4 關閉時
                             btnUp.classList.remove('show');
                             btnDown.classList.remove('show');
-                            
+
                             // 👇 新增這段：自動收合備註區塊並恢復按鈕顏色 👇
                             const notes = document.getElementById('qiuqian-notes-container');
                             const notesBtn = document.getElementById('btn-toggle-notes');
@@ -1489,10 +1504,10 @@ window.goBack = async function () {
         // --------------------------------------------------
         if (activePage.startsWith('settings-') || activePage === 'settings') {
             if (typeof window.saveSettings === 'function') {
-                
+
                 // 💡 技巧 A：暫時將 showToast 弄啞（靜音），防止 saveSettings 原始函式內建的提示音爆出
                 const originalToast = window.showToast;
-                window.showToast = function () {};
+                window.showToast = function () { };
 
                 // 執行實際存檔（將 UI 欄位寫入變數並儲存到 LocalStorage）
                 window.saveSettings();
@@ -1502,7 +1517,7 @@ window.goBack = async function () {
 
                 // 💡 技巧 B：拿剛剛儲存完的最新設定，與「進入頁面時」的初始快照做字串比對
                 const currentSettingsStr = JSON.stringify(typeof settings !== 'undefined' ? settings : {});
-                
+
                 if (window.globalSettingsSnapshot && window.globalSettingsSnapshot !== currentSettingsStr) {
                     // 偵測到兩者不一致 -> 代表使用者進來後「真的有改過東西」才跳提示
                     if (typeof window.showToast === 'function') {
@@ -1521,15 +1536,19 @@ window.goBack = async function () {
             // 🌟 修正：加入 typeof 判斷！如果找不到 smartConfirm，就退回使用原生的 confirm()
             if (typeof currentLot !== 'undefined' && currentLot > 0 && !window.isFortuneSaved) {
                 const msg = "⚠️ 已抽出籤詩並請示中，確定要放棄並離開嗎？\n(離開後本次結果將不予保留)";
-                const confirmed = typeof window.smartConfirm === 'function' ? await window.smartConfirm(msg, "放棄離開") : confirm(msg);
-                if (!confirmed) return; 
-                
+                if (!confirm(msg)) return; // 🛑 使用原生攔截
+                //精美的showConfim視窗，考量程式運作安全性捨去不用
+                //const confirmed = typeof window.smartConfirm === 'function' ? await window.smartConfirm(msg, "放棄離開") : confirm(msg);
+                //if (!confirmed) return;
+
                 if (typeof isQiuqianActive !== 'undefined') isQiuqianActive = false;
-            } 
+            }
             else if (typeof isQiuqianActive !== 'undefined' && isQiuqianActive) {
                 const msg = "⚠️ 求籤尚未完成，確定要中斷並離開嗎？";
-                const confirmed = typeof window.smartConfirm === 'function' ? await window.smartConfirm(msg, "中斷求籤") : confirm(msg);
-                if (!confirmed) return; 
+                if (!confirm(msg)) return; // 🛑 使用原生攔截
+                //精美的showConfim視窗，考量程式運作安全性捨去不用
+                //const confirmed = typeof window.smartConfirm === 'function' ? await window.smartConfirm(msg, "中斷求籤") : confirm(msg);
+                //if (!confirmed) return;
                 isQiuqianActive = false;
             }
         }
@@ -1537,8 +1556,10 @@ window.goBack = async function () {
             const hasSimpleData = (typeof simpleSessionHistory !== 'undefined' && simpleSessionHistory.length > 0) ||
                 (typeof simpleTempCups !== 'undefined' && simpleTempCups.some(c => c !== null));
             if (hasSimpleData) {
-                const confirmed = await window.smartConfirm("⚠️ 您的「問事對話」尚未儲存，確定要離開嗎？\n(未儲存內容將會遺失)", "中斷問事");
-                if (!confirmed) return;
+                if (!confirm("⚠️ 您的「問事對話」尚未儲存，確定要離開嗎？\n(未儲存內容將會遺失)")) return; // 🛑 使用原生攔截
+                //精美的showConfim視窗，考量程式運作安全性捨去不用
+                //const confirmed = await window.smartConfirm("⚠️ 您的「問事對話」尚未儲存，確定要離開嗎？\n(未儲存內容將會遺失)", "中斷問事");
+                //if (!confirmed) return;
             }
             if (typeof window.resetSimple === 'function') window.resetSimple(true); // 確定離開則大掃除
         }
@@ -1546,8 +1567,10 @@ window.goBack = async function () {
             const hasCompareData = (typeof compareState !== 'undefined' && compareState.results && compareState.results.length > 0) ||
                 (typeof compFuHistory !== 'undefined' && compFuHistory.length > 0);
             if (hasCompareData || (typeof isCompareActive !== 'undefined' && isCompareActive)) {
-                const confirmed = await window.smartConfirm("⚠️ 您的「比較擲筊」尚未結束，確定要離開嗎？", "中斷比較");
-                if (!confirmed) return;
+                if (!confirm("⚠️ 您的「比較擲筊」尚未結束，確定要離開嗎？")) return; // 🛑 使用原生攔截
+                //精美的showConfim視窗，考量程式運作安全性捨去不用
+                //const confirmed = await window.smartConfirm("⚠️ 您的「比較擲筊」尚未結束，確定要離開嗎？", "中斷比較");
+                //if (!confirmed) return;
             }
             if (typeof isCompareActive !== 'undefined') isCompareActive = false;
             if (typeof window.resetCompare === 'function') window.resetCompare(true);
@@ -1587,14 +1610,30 @@ window.goBack = async function () {
         }
 
         // 5. 🚀 執行導航與歷史紀錄清理
-        window.history.replaceState({ page: targetPage }, '', '#' + targetPage);
+        // 🌟 核心修復：消除歷史紀錄無限堆疊的問題
 
-        // 🌟 核心修復：拔掉 goTo，換回您原本正確的 renderPage 強制渲染！
-        if (typeof renderPage === 'function') {
-            renderPage(targetPage);
+        if (window.history.state && window.history.state.page) {
+            // 1. 呼叫原生 API 真實退回一步，把當前這層「詳情」從歷史中 pop 掉
+            window.history.back();
+
+            // 2. 利用短暫延遲，在退回後強制蓋上算好的 targetPage 
+            // 確保自訂的 routeMap 防呆路由依然完美生效，畫面也不會閃爍
+            setTimeout(() => {
+                window.history.replaceState({ page: targetPage }, '', '#' + targetPage);
+                if (typeof renderPage === 'function') {
+                    renderPage(targetPage);
+                } else {
+                    window.location.hash = '#' + targetPage;
+                }
+            }, 50);
         } else {
-            // 回退機制：若沒有 renderPage 則直接跳轉 hash
-            window.location.hash = '#' + targetPage;
+            // 如果沒有歷史紀錄狀態（例如使用者直接貼網址進來的），就維持原來的替換模式
+            window.history.replaceState({ page: targetPage }, '', '#' + targetPage);
+            if (typeof renderPage === 'function') {
+                renderPage(targetPage);
+            } else {
+                window.location.hash = '#' + targetPage;
+            }
         }
 
     } catch (err) {
