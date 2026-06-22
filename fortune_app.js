@@ -1,8 +1,8 @@
 async function initApp() {
     console.log("🚀 [系統追蹤] 1. 成功進入 initApp，準備開始載入流程...");
-    
+
     // 🌟 關鍵 1：紀錄程式剛開始載入的精確時間
-    const appStartTime = Date.now(); 
+    const appStartTime = Date.now();
 
     try {
         // ... (中間保留你原本所有的載入邏輯) ...
@@ -25,7 +25,7 @@ async function initApp() {
     } catch (err) {
         console.error("APP 初始化過程中發生錯誤:", err);
     } finally {
-        
+
         // ==========================================
         // 🌟 關鍵 2：完美開門協調器 (放在 initApp 的最後面)
         // ==========================================
@@ -40,28 +40,28 @@ async function initApp() {
                 sessionStorage.removeItem('skipSplash');
             } else {
                 // ⏱️ 設定廟門「至少」要關著給使用者看幾毫秒 (這裡設為 1200 毫秒 = 1.2秒)
-                const minWaitTime = 1200; 
-                
+                const minWaitTime = 1200;
+
                 // 計算剛才上面的資料載入總共花了多少時間
-                const loadTime = Date.now() - appStartTime; 
-                
+                const loadTime = Date.now() - appStartTime;
+
                 // 數學魔法：如果載入只花了 100 毫秒，就強制補足剩下的 1100 毫秒
                 // 如果手機很慢載入花了 2000 毫秒，remainingTime 就會是 0，立刻準備開門
                 const remainingTime = Math.max(0, minWaitTime - loadTime);
 
                 setTimeout(() => {
                     // 1. 觸發 3D 開門動畫
-                    splashEl.classList.add('doors-opening'); 
-                    
+                    splashEl.classList.add('doors-opening');
+
                     // 2. 等待 1.5 秒 (配合 CSS 的 1.5s 轉場時間)，門完全推開後再徹底隱藏
                     setTimeout(() => {
                         splashEl.style.display = 'none';
-                    }, 1500); 
-                    
+                    }, 1500);
+
                 }, remainingTime);
             }
         }
-        
+
     }
 }
 
@@ -112,7 +112,7 @@ window.toggleTapShake = function (e) {
         isShaking = true;
         // 加入 breathing-text 創造神秘呼吸感
         if (instr) instr.innerHTML = "<span class='breathing-text'>✨ 抽籤中...憑直覺再次點擊抽籤</span>";
-        
+
         if (animArea) {
             const qt = typeof getCurrentQtImages === 'function' ? getCurrentQtImages() : { static: '🏺', active: '🏺' };
             animArea.innerHTML = qt.active.startsWith('data:')
@@ -123,9 +123,9 @@ window.toggleTapShake = function (e) {
         // 第二下點擊：停止搖晃並出籤
         isShaking = false;
         isDrawing = true;
-        
+
         if (animArea) animArea.removeEventListener('click', window.toggleTapShake);
-        
+
         if (typeof finishDrawLot === 'function') finishDrawLot();
     }
 };
@@ -147,7 +147,7 @@ function startTouchShake(e) {
             ? `<img src="${qt.active}" class="shake-anim" style="height:100px; object-fit:contain; pointer-events:none; user-select:none; -webkit-touch-callout:none;">`
             : `<span style="font-size:4rem;" class="shake-anim" id="step2-cylinder-icon">${qt.active}</span>`;
     }
-    
+
     if (instr) instr.innerText = "👋 撥動中... (放開抽籤) 👋";
 }
 
@@ -251,7 +251,7 @@ function finishDrawLot() {
     // ★ 核心修正 1：把數字放到畫面上方的獨立區塊
     const lotNumDisplay = document.getElementById('lot-num-display');
     if (lotNumDisplay) lotNumDisplay.innerText = currentLot;
-    
+
     // ★ 核心修正 2：讓上方的籤號區塊浮現 (透明度變 1)
     const titleEl = document.getElementById('step2-lot-title');
     if (titleEl) titleEl.style.opacity = '1';
@@ -436,7 +436,7 @@ window.retryDraw = function () {
     if (typeof currentSaints !== 'undefined') {
         currentSaints = 0;
     }
-    
+
     // ★ 核心修正 2：徹底解除抽籤鎖定，讓第二次觸控能順利觸發！
     if (typeof isDrawing !== 'undefined') isDrawing = false;
     if (typeof isShaking !== 'undefined') isShaking = false;
@@ -448,11 +448,11 @@ window.retryDraw = function () {
     // 5-1. 把上方的籤號重新隱藏
     const titleEl = document.getElementById('step2-lot-title');
     if (titleEl) titleEl.style.opacity = '0';
-    
+
     // 改變文字會觸發背後的 MutationObserver
     const lotNumDisplay = document.getElementById('lot-num-display');
     if (lotNumDisplay) lotNumDisplay.innerText = '?';
-    
+
     // 5-2. 把提示文字改回「請抽籤」
     const instr = document.getElementById('draw-instruction');
     if (instr) instr.innerText = "請抽籤";
@@ -511,7 +511,8 @@ function showResult() {
 }
 
 window.finishQiuqian = async function () {
-    if (await showConfirm("確定要中斷求籤並返回首頁嗎？", "中斷求籤")) {
+    if (confirm("確定要中斷求籤並返回首頁嗎？")) {
+    //if (await showConfirm("確定要中斷求籤並返回首頁嗎？", "中斷求籤")) {
         isQiuqianActive = false; // ★ 確定要結束，解除防跳出攔截
         goTo('home');
     }
@@ -711,7 +712,7 @@ function openSystemList(sysId, title) {
 function populateManualTypes() {
     // 💡【核心修正】：因為 manual-type 在 HTML 中已改為 input type="hidden"，
     // 舊版塞 <option> 的邏輯會破壞網頁元件，在此直接清空防呆。
-    return; 
+    return;
 }
 
 function populateSimpleCompareDeities() {
@@ -967,7 +968,8 @@ function saveDetailChanges() {
 
 // 刪除紀錄 (替換 confirm)
 window.deleteRecord = async function (id, fromDetail = false) { // ★ 加上 async
-    if (await showConfirm("確定要永久刪除此紀錄嗎？\n(刪除後無法復原)", "刪除確認")) { // ★ 取代 confirm
+    if (confirm("確定要永久刪除此紀錄嗎？\n(刪除後無法復原)")) {
+    //if (await showConfirm("確定要永久刪除此紀錄嗎？\n(刪除後無法復原)", "刪除確認")) { // ★ 取代 confirm
         if (typeof window.deleteFromCloud === 'function') window.deleteFromCloud(id); // ★ 同步刪除雲端
         const numId = parseInt(id, 10);
         records = records.filter(r => parseInt(r.id, 10) !== numId);
@@ -988,7 +990,7 @@ function switchDrawMode(mode) {
     const btnTimer = document.getElementById('btn-mode-timer');
     const btnTouch = document.getElementById('btn-mode-touch');
     const btnTap = document.getElementById('btn-mode-tap');
-    
+
     if (btnTimer) btnTimer.classList.toggle('active', mode === 'timer');
     if (btnTouch) btnTouch.classList.toggle('active', mode === 'touch');
     if (btnTap) btnTap.classList.toggle('active', mode === 'tap');
@@ -997,7 +999,7 @@ function switchDrawMode(mode) {
     const timerArea = document.getElementById('timer-config-area');
     const touchArea = document.getElementById('touch-hint-area');
     const tapArea = document.getElementById('tap-hint-area');
-    
+
     if (timerArea) timerArea.style.display = (mode === 'timer') ? 'block' : 'none';
     if (touchArea) touchArea.style.display = (mode === 'touch') ? 'block' : 'none';
     if (tapArea) tapArea.style.display = (mode === 'tap') ? 'block' : 'none';
@@ -1053,7 +1055,8 @@ function initCupIcons() {
 }
 
 window.resetAllCups = async function () {
-    if (await showConfirm("確定清除所有自訂的筊杯圖片嗎？", "還原確認")) {
+    if (confirm("確定清除所有自訂的筊杯圖片嗎？")) {
+    //if (await showConfirm("確定清除所有自訂的筊杯圖片嗎？", "還原確認")) {
         ['cup_saint', 'cup_laugh', 'cup_covered'].forEach(k => localStorage.removeItem('custom_' + k));
         initCupIcons();
         showToast("🗑️ 已還原預設筊杯");
@@ -1061,7 +1064,8 @@ window.resetAllCups = async function () {
 };
 
 window.resetQiantong = async function () {
-    if (await showConfirm("確定還原預設籤筒圖像嗎？", "還原確認")) {
+    if (confirm("確定還原預設籤筒圖像嗎？")) {
+    //if (await showConfirm("確定還原預設籤筒圖像嗎？", "還原確認")) {
         localStorage.removeItem('custom_qiantong_img');
         initCupIcons();
         showToast("🗑️ 已還原預設籤筒");
@@ -1111,11 +1115,16 @@ window.renderFollowUps = function (record) {
             visualHtml += `</div>`;
         }
 
+        // 🌟 新增：解析時間並轉換為 HTML
+        let timeHtml = b.time ? `<div style="font-size:0.75rem; color:#888; margin-bottom:4px;">🕒 ${b.time}</div>` : '';
+
+        // 🌟 將 timeHtml 塞進面板裡 (放在問題的上方)
         list.innerHTML += `
                 <div id="record-fu-${record.id}-${i}" class="session-block" style="padding:12px; background:rgba(255,255,255,0.05); border-left:3px solid var(--accent); border-radius:8px; margin-bottom:10px; position:relative;">
                     
                     <button data-html2canvas-ignore="true" onclick="deleteDetailFollowUp(${record.id}, ${i})" style="position:absolute; right:10px; top:10px; background:transparent; border:1px solid #d32f2f; color:#d32f2f; border-radius:4px; padding:2px 8px; font-size:0.75rem; cursor:pointer;">刪除</button>
                     
+                    ${timeHtml}
                     <div class="q-text" style="font-size:0.95rem; margin-bottom:5px; color:#ddd; font-weight:bold; padding-right:80px;">問：${b.question}</div>
                     <div class="a-text" style="font-size:0.9rem; color:var(--accent);">答：${b.result}</div>
                     ${visualHtml}
@@ -1385,7 +1394,8 @@ function saveFollowUp() {
     const newObj = {
         question: q,
         result: summary,
-        details: [...fuTempResults] // ✅ 修正：使用展開運算子複製陣列，切斷連線避免被清空
+        details: [...fuTempResults], // ✅ 使用展開運算子複製陣列
+        time: (!isNaN(editIndex) && editIndex >= 0 && r.followUps[editIndex].time) ? r.followUps[editIndex].time : new Date().toLocaleString() // 🕒 新增時間戳記
     };
 
     if (!isNaN(editIndex) && editIndex >= 0) { // ✅ 修正：更嚴謹的數字判斷
