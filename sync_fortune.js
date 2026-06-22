@@ -9,15 +9,21 @@ window.initDatabaseEngine = async function () {
     try {
         const dbType = localStorage.getItem('cfg_db_type'); 
         
-        // 情況 A：如果使用者是第一次開機、或是希望預設走雲端
+        // 依據金鑰狀態顯示 UI
+        const statusBanner = document.getElementById('cloud-key-status');
+        const syncContainer = document.getElementById('sync-toggle-container');
+        if (window.hasBuiltInKey) {
+            if (statusBanner) statusBanner.style.display = 'block';
+            if (syncContainer) syncContainer.style.display = 'flex'; // 有 KEY 才顯示開關
+        }
+        
         if (!dbType || dbType === 'firebase') {
             window.currentDB = 'firebase';
-            localStorage.setItem('cfg_db_type', 'firebase'); // 確保狀態鎖定在雲端
+            localStorage.setItem('cfg_db_type', 'firebase'); 
             console.log("🔥 系統啟動：經由內建私鑰檔案連接 Firebase 雲端資料庫");
             return;
         }
 
-        // 情況 B：使用 Google 試算表託管
         if (dbType === 'gas') {
             const gasUrl = localStorage.getItem('cfg_gas_url');
             if (gasUrl && gasUrl.trim() !== '') {
@@ -28,7 +34,6 @@ window.initDatabaseEngine = async function () {
             }
         }
 
-        // 情況 C：使用者手動在後台切換為純單機模式
         window.currentDB = 'local';
         console.log("📱 使用者指定純本機單機模式");
 
@@ -40,43 +45,46 @@ window.initDatabaseEngine = async function () {
 
 // 統一的雲端資料總管
 const CloudManager = {
-    // 儲存紀錄
     saveRecord: async function (recordData) {
         const dbType = window.currentDB;
+        
+        // 🌟 核心閘門：讀取使用者是否關閉了即時同步
+        const isSyncEnabled = localStorage.getItem('cfg_realtime_sync') !== 'false';
 
-        if (dbType === 'firebase') {
-            // 呼叫你在 div_sys_firebase-config.js 寫好的模組化存檔函數
-            if (typeof window.saveToCloud === 'function') {
-                return await window.saveToCloud(recordData);
-            }
-        }
-        else if (dbType === 'gas') {
-            // 丟給使用者的 Google 試算表
-            return await fetch(window.gasUrl, {
-                method: 'POST',
-                mode: 'no-cors', // GAS 跨域通常用 no-cors 或正確設定 CORS
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'saveRecord', data: recordData })
-            });
-        }
-        else {
-            // 單機模式：只存 LocalStorage
+        // 如果是單機模式，或是「使用者關閉了同步開關」，一律只存 LocalStorage
+        if (dbType === 'local' || !isSyncEnabled) {
             let localRecords = JSON.parse(localStorage.getItem('zb_records_v3') || '[]');
             localRecords.push(recordData);
             localStorage.setItem('zb_records_v3', JSON.stringify(localRecords));
             return Promise.resolve(true);
         }
+
+        // --- 以下保留你原本的雲端發送邏輯 ---
+        if (dbType === 'firebase' && typeof window.saveToCloud === 'function') {
+            return await window.saveToCloud(recordData);
+        }
+        else if (dbType === 'gas') {
+            return await fetch(window.gasUrl, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'saveRecord', data: recordData })
+            });
+        }
     },
 
-    // 讀取紀錄
     getRecords: async function () {
-        if (window.currentDB === 'firebase') {
-            /* 執行 Firebase 讀取邏輯 */
-        } else if (window.currentDB === 'gas') {
-            /* 執行 fetch GET 請求讀取試算表 */
-        } else {
-            return JSON.parse(localStorage.getItem('zb_records_v3') || '[]');
-        }
+        if (window.currentDB === 'firebase') { /* Firebase 讀取 */ } 
+        else if (window.currentDB === 'gas') { /* fetch 讀取 */ } 
+        else { return JSON.parse(localStorage.getItem('zb_records_v3') || '[]'); }
+    }
+};
+
+// 開關切換的全域函式
+window.toggleRealtimeSync = function(isChecked) {
+    localStorage.setItem('cfg_realtime_sync', isChecked);
+    if (typeof showToast === 'function') {
+        showToast(isChecked ? "☁️ 已開啟雲端即時同步" : "⏸️ 已暫停同步 (僅存本機)");
     }
 };
 
