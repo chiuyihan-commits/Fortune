@@ -20,17 +20,16 @@ window.renderSimpleHistory = function () {
         }
 
         let cleanHtml = b.html ? b.html.replace('margin-top:5px;', 'margin-top:0;') : '';
+        // 🌟 新增解析時間
+        let timeHtml = b.time ? `<span style="margin-left:8px; font-weight:normal;">🕒 ${b.time}</span>` : '';
 
         c.innerHTML += `
             <div id="record-simple-${i}" class="session-block" style="position: relative;">
-                
                 ${editBtnHtml}
-                
                 <button data-html2canvas-ignore="true" onclick="window.deleteSimpleSessionItem(${i})" style="position:absolute; right:10px; top:10px; background:transparent; border:none; color:#f44336; font-size:1.1rem; cursor:pointer; padding:0; line-height:1; opacity:0.8;">🗑️</button>
                 
-                <div style="font-size:0.8rem; color:#888; margin-bottom:5px;">#${i + 1}</div>
-                <div class="q-text" style="padding-right: 85px; margin-bottom: 6px;">問：${b.question}</div>
-                
+                <div style="font-size:0.8rem; color:#888; margin-bottom:5px;">#${i + 1} ${timeHtml}</div>
+                <div class="q-text" style="padding-right: 85px; margin-bottom: 6px;">問：${b.question}</div>        
                 <div style="display:flex; align-items:center; flex-wrap:wrap; gap:8px;">
                     <div class="a-text" style="margin:0;">答：${b.result}</div>
                     ${cleanHtml ? `<div style="color:#555; font-size:0.9rem;">|</div> <div style="display:flex; align-items:center;">${cleanHtml}</div>` : ''}
@@ -161,6 +160,7 @@ window.saveHistoryEdit = async function () {
         record.details = [...window.tempEditCups];
         record.result = summary;
         record.html = visualHtml;
+        record.time = record.time || new Date().toLocaleString(); // 🌟 保留原時間或補上新時間
 
         window.closeHistoryEditModal();
         if (type === 'simple') window.renderSimpleHistory();
@@ -285,14 +285,14 @@ window.saveSimpleBlock = function () {
         // 🌟 核心防護：記錄是否為線上賜籤
         const isOnlineDraw = (isPoemActive && isOnline);
 
-        window.simpleSessionHistory.push({ question: finalQuestion, result: summary, details: [...cups], html: visualHtml, isOnlineDraw: isOnlineDraw });
+        window.simpleSessionHistory.push({ question: finalQuestion, result: summary, details: [...cups], html: visualHtml, isOnlineDraw: isOnlineDraw, time: new Date().toLocaleString() });
 
         window.isSimpleActive = true;
         if (document.getElementById('simple-lot-num')) document.getElementById('simple-lot-num').value = '';
-        
+
         // 1. 重新渲染歷史紀錄
         if (typeof window.renderSimpleHistory === 'function') window.renderSimpleHistory();
-        
+
         // 2. 清空輸入區塊
         if (typeof window.clearSimpleBlock === 'function') window.clearSimpleBlock(true);
 
@@ -351,7 +351,7 @@ window.saveCompFuBlock = function () {
         // 🌟 核心防護：記錄是否為線上賜籤
         const isOnlineDraw = (isPoemActive && isOnline);
 
-        window.compFuHistory.push({ question: finalQuestion, result: summary, details: [...cups], html: visualHtml, isOnlineDraw: isOnlineDraw });
+        window.compFuHistory.push({ question: finalQuestion, result: summary, details: [...cups], html: visualHtml, isOnlineDraw: isOnlineDraw, time: new Date().toLocaleString() });
 
         if (document.getElementById('comp-fu-lot-num')) document.getElementById('comp-fu-lot-num').value = '';
         if (typeof window.renderCompFuHistory === 'function') window.renderCompFuHistory();
@@ -697,7 +697,11 @@ window.saveDetailFuBlock = function () {
 
     if (!records[recIndex].followUps) records[recIndex].followUps = [];
     records[recIndex].followUps.push({
-        question: qText, result: summary, details: [...detailFuTempCups], html: visualHtml
+        question: qText, 
+        result: summary, 
+        details: [...detailFuTempCups], 
+        html: visualHtml,
+        time: new Date().toLocaleString() // 🌟 補上這個關鍵的時間戳記
     });
 
     window.Database.saveRecord(records[recIndex]);
@@ -705,12 +709,23 @@ window.saveDetailFuBlock = function () {
     if (qTextEl) qTextEl.value = "";
 
     if (typeof showToast === 'function') showToast("💾 追問紀錄已成功儲存！");
-    
-    // 💡【核心修改】：取代原本的 openRecordDetail(currentDetailRecordId)
+
+    // 💡【新增】：大掃除時間！儲存後徹底清空輸入框、恢復次數並重置杯象
+    if (qTextEl) qTextEl.value = "";
+
+    // 恢復擲筊次數為 1
+    const timesInput = document.getElementById('detail-fu-times');
+    if (timesInput) timesInput.value = 1;
+
+    // 重新渲染擲筊格子，清空剛才的殘留杯象與陣列
+    if (typeof window.renderDetailFuRows === 'function') {
+        window.renderDetailFuRows();
+    }
+
     // 改為局部刷新追問列表，並將畫面平滑滾動聚焦到剛新增的項目
     if (typeof renderFollowUps === 'function') {
         renderFollowUps(records[recIndex]);
-        
+
         setTimeout(() => {
             const list = document.getElementById('detail-fu-list');
             if (list && list.lastElementChild) {
@@ -768,11 +783,12 @@ window.commitCompareWithFu = async function () {
         finalHtml += `<hr style="border-color:#444; margin:15px 0;">`;
         finalHtml += `<h4 style="color:var(--accent); margin-bottom:10px;">後續追問</h4>`;
         compFuHistory.forEach((b, i) => {
-            // 讓存檔的紀錄也享有最完美的文字與杯象並排設計！
             let cleanHtml = b.html ? b.html.replace('margin-top:5px;', 'margin-top:0;') : '';
+            let timeHtml = b.time ? `<span style="margin-left:8px; font-weight:normal;">🕒 ${b.time}</span>` : ''; // 🌟 新增時間
+
             finalHtml += `
                 <div style="background:rgba(255,255,255,0.05); padding:10px; border-radius:8px; margin-bottom:8px;">
-                    <div style="font-size:0.8rem; color:#888;">#${i + 1}</div>
+                    <div style="font-size:0.8rem; color:#888;">#${i + 1} ${timeHtml}</div>
                     <div style="font-weight:bold; margin-bottom:6px;">問：${b.question}</div>
                     <div style="display:flex; align-items:center; flex-wrap:wrap; gap:8px;">
                         <div style="color:var(--accent); margin:0;">答：${b.result}</div>
@@ -805,6 +821,7 @@ window.commitCompareWithFu = async function () {
     await window.resetCompare(true);
     if (typeof window.goTo === 'function') window.goTo('records');
 };
+
 // ==========================================
 // ★ 3. 求籤跨頁導航 (智慧判斷輸入框與選單)
 // ==========================================
@@ -854,8 +871,10 @@ window.goToQiuqianFromTool = async function (tool) {
 window.resetSimple = async function (force = false) {
     try {
         if (!force) {
-            const confirmed = await window.smartConfirm("確定要重置問事畫面嗎？未儲存的內容將會遺失。", "重置確認");
-            if (!confirmed) return;
+            if (!confirm("確定要重置問事畫面嗎？未儲存的內容將會遺失。")) return;
+            //精美的showConfim視窗，考量程式運作安全性捨去不用
+            //const confirmed = await window.smartConfirm("確定要重置問事畫面嗎？未儲存的內容將會遺失。", "重置確認");
+            //if (!confirmed) return;
         }
 
         // 1. 清空背後資料陣列
@@ -900,8 +919,10 @@ window.resetSimple = async function (force = false) {
 window.resetCompare = async function (force = false) {
     try {
         if (!force) {
-            const confirmed = await window.smartConfirm("確定要重置比較擲筊嗎？未儲存的內容將會遺失。", "重置確認");
-            if (!confirmed) return;
+            if (!confirm("確定要重置比較擲筊嗎？未儲存的內容將會遺失。")) return;
+            //精美的showConfim視窗，考量程式運作安全性捨去不用
+            //const confirmed = await window.smartConfirm("確定要重置比較擲筊嗎？未儲存的內容將會遺失。", "重置確認");
+            //if (!confirmed) return;
         }
 
         if (typeof compareState !== 'undefined') {
@@ -985,7 +1006,7 @@ window.adjustNumber = function (inputId, delta, min, max, renderFuncStr) {
     }
 
     inputEl.value = Number.isInteger(delta) ? newVal : newVal.toFixed(2);
-    
+
     // 觸發 HTML 上的 onchange 事件 (用來啟動下方的防呆與存檔)
     inputEl.dispatchEvent(new Event('change'));
 
@@ -1003,13 +1024,13 @@ window.adjustNumber = function (inputId, delta, min, max, renderFuncStr) {
 window.generateCupHtml = function (val, size = 24, fontSize = 12) {
     // 取得模式設定：預設 'css'，可選 'text', 'image'
     const mode = (typeof settings !== 'undefined' && settings.cupDisplayMode) ? settings.cupDisplayMode : 'css';
-    
+
     // 模式 A：純 CSS 幾何渲染 (最高效能、最美觀)
     if (mode === 'css') {
         const cssW = size;
         const cssH = size;
         let cup1 = '', cup2 = '';
-        
+
         // 依據 val 判斷杯象並組合 (陽=cup-up, 陰=cup-down)
         if (val === 1) { // 聖筊 (一陰一陽)
             cup1 = 'cup-down'; cup2 = 'cup-up';
@@ -1053,7 +1074,7 @@ window.generateCupHtml = function (val, size = 24, fontSize = 12) {
 // ★ Google Sheet Webhook 教學攻略互動引擎
 // ==========================================
 // 1. 開關教學面板
-window.toggleGasTutorial = function() {
+window.toggleGasTutorial = function () {
     const box = document.getElementById('gas-tutorial-box');
     if (box) {
         // 切換顯示狀態
@@ -1068,13 +1089,13 @@ window.toggleGasTutorial = function() {
 };
 
 // 2. 複製程式碼功能
-window.copyGasCode = function() {
+window.copyGasCode = function () {
     const codeArea = document.getElementById('gas-code-block');
     if (!codeArea) return;
 
     // 使用現代 Clipboard API
     navigator.clipboard.writeText(codeArea.value).then(() => {
-        if(typeof showToast === 'function') {
+        if (typeof showToast === 'function') {
             showToast("✅ 程式碼已成功複製！請至 Google Sheet 貼上。");
         } else {
             alert("✅ 程式碼已成功複製！");
@@ -1084,12 +1105,12 @@ window.copyGasCode = function() {
         // 備用方案：如果瀏覽器阻擋 Clipboard API
         codeArea.select();
         document.execCommand('copy');
-        if(typeof showToast === 'function') showToast("✅ 程式碼已複製！");
+        if (typeof showToast === 'function') showToast("✅ 程式碼已複製！");
     });
 };
 
 // 3. 原生分享教學攻略功能
-window.shareGasTutorial = async function() {
+window.shareGasTutorial = async function () {
     const tutorialText = `🎁 【擲筊助手】打造專屬 Google Webhook 雲端硬碟\n\n免註冊複雜伺服器，只要 3 個步驟，免費把 Google 試算表變成專屬的雲端備份中心：\n\n1️⃣ 開啟一個全新的 Google 試算表，點擊上方選單 [擴充功能] -> [Apps Script]。\n2️⃣ 貼上專屬串接程式碼 (請至 APP 內複製)。\n3️⃣ 點擊右上角 [部署] -> [新增部署作業] -> 類型選擇 [網頁應用程式]。將存取權限設為 [所有人]，部署後拿到一串 URL，貼回 APP 設定中即可完成串接！`;
 
     try {
@@ -1102,7 +1123,7 @@ window.shareGasTutorial = async function() {
         } else {
             // 不支援分享的裝置（例如部分電腦），直接幫他複製純文字攻略
             await navigator.clipboard.writeText(tutorialText);
-            if(typeof showToast === 'function') showToast("✅ 攻略文字已複製到剪貼簿，你可以貼給朋友囉！");
+            if (typeof showToast === 'function') showToast("✅ 攻略文字已複製到剪貼簿，你可以貼給朋友囉！");
         }
     } catch (err) {
         console.error("分享失敗:", err);
@@ -1112,7 +1133,7 @@ window.shareGasTutorial = async function() {
 // ==========================================
 // ★ 圖片生成與原生分享引擎 (Web Share API)
 // ==========================================
-window.shareResultRecord = async function(buttonElement, targetDivId) {
+window.shareResultRecord = async function (buttonElement, targetDivId) {
     // 1. 防止重複點擊，先把按鈕反灰
     const originalText = buttonElement.innerHTML;
     buttonElement.innerHTML = "⏳ 處理中...";
@@ -1125,10 +1146,10 @@ window.shareResultRecord = async function(buttonElement, targetDivId) {
         // 2. 使用 html2canvas 將區塊轉為 Canvas
         // 設定 backgroundColor 確保背景不會變透明黑色
         const canvas = await html2canvas(targetDiv, {
-            backgroundColor: "#222", 
+            backgroundColor: "#222",
             scale: 2 // 提高圖片解析度
         });
-        
+
         // 3. 將 Canvas 轉成 Blob 檔案
         canvas.toBlob(async (blob) => {
             const file = new File([blob], `divination_record_${Date.now()}.png`, { type: "image/png" });
@@ -1150,7 +1171,7 @@ window.shareResultRecord = async function(buttonElement, targetDivId) {
         });
     } catch (error) {
         console.error("截圖或分享失敗:", error);
-        if(typeof showToast === 'function') showToast("❌ 分享失敗");
+        if (typeof showToast === 'function') showToast("❌ 分享失敗");
     } finally {
         // 恢復按鈕狀態
         buttonElement.innerHTML = originalText;
@@ -1161,24 +1182,24 @@ window.shareResultRecord = async function(buttonElement, targetDivId) {
 // ==========================================
 // ★ 直接輸入防呆與儲存 (整合版)
 // ==========================================
-window.validateDirectInput = function(inputId, min, max) {
+window.validateDirectInput = function (inputId, min, max) {
     const el = document.getElementById(inputId);
     if (!el) return;
-    
+
     // 取得輸入值並檢查是否為數字
     let val = parseFloat(el.value);
-    
+
     // 防呆處理：小於最小或非數字
     if (isNaN(val) || val < min) {
         val = min;
         if (typeof showToast === 'function') showToast(`⚠️ 數字不能小於 ${min} 喔！`);
-    } 
+    }
     // 防呆處理：大於最大值
     else if (val > max) {
         val = max;
         if (typeof showToast === 'function') showToast(`⚠️ 數字最多只能設定到 ${max}！`);
-    } 
-    
+    }
+
     // 將修正後的值寫回畫面，統一保留兩位小數 (例如 2.00)
     el.value = val.toFixed(2);
 
@@ -1191,20 +1212,20 @@ window.validateDirectInput = function(inputId, min, max) {
         'cup-time-throw': 'cupTimeThrow',           // 擲筊搖晃秒數
         'cup-time-result-sec': 'cupTimeResultSec'   // 擲筊停留秒數
     };
-    
+
     if (keyMap[inputId]) {
         const paramKey = keyMap[inputId];
         // 1. 寫入全域變數記憶體
         if (typeof settings !== 'undefined') {
             settings[paramKey] = val;
         }
-        
+
         // 2. 寫入本地資料庫 (localStorage)
         try {
             let savedData = JSON.parse(localStorage.getItem('zb_settings') || '{}');
             savedData[paramKey] = val;
             localStorage.setItem('zb_settings', JSON.stringify(savedData));
-        } catch(e) {
+        } catch (e) {
             console.error("設定存檔失敗:", e);
         }
     }
@@ -1216,11 +1237,11 @@ window.validateDirectInput = function(inputId, min, max) {
 // ==========================================
 // ★ 系統設定載入 (整合版：保留原有功能並加入新版秒數同步)
 // ==========================================
-window.loadSettings = function() {
+window.loadSettings = function () {
     // 1. 從瀏覽器記憶體讀取最新設定
     const s = localStorage.getItem('zb_settings');
-    if (s) { 
-        settings = { ...settings, ...JSON.parse(s) }; 
+    if (s) {
+        settings = { ...settings, ...JSON.parse(s) };
     }
 
     // 防呆：預設系統失效時重置為白沙屯
@@ -1315,7 +1336,7 @@ window.loadSettings = function() {
     // 🌟 整合新增：套用開場提詞到 3D 廟門與設定 UI 上
     const textContainer = document.getElementById('splash-text-content');
     const dynamicText = document.getElementById('splash-dynamic-text');
-    
+
     // 從 settings 讀取設定 (如果沒設定過，預設為 true)
     const isShow = settings.showSplashText === true
     const customText = settings.splashText || '誠心準備中...';
@@ -1340,7 +1361,7 @@ window.loadSettings = function() {
     const cupDispMode = settings.cupDisplayMode || 'image';
     const radioDisp = document.querySelector(`input[name="cup-display-mode"][value="${cupDispMode}"]`);
     if (radioDisp) radioDisp.checked = true;
-    
+
     // 執行結尾的 UI 更新排程
     if (typeof window.updateSystemTotalUI === 'function') window.updateSystemTotalUI();
     if (typeof window.enforceCupModeLogic === 'function') setTimeout(window.enforceCupModeLogic, 200);
