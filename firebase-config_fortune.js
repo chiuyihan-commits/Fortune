@@ -2,7 +2,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getFirestore, collection, doc, setDoc, deleteDoc, getDoc, query, orderBy, onSnapshot, serverTimestamp, writeBatch, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
-import { firebaseConfig } from "./privatekeys.js";
+import { firebaseConfig } from "./privatekey.js";
 window.hasBuiltInKey = (typeof firebaseConfig !== 'undefined' && Object.keys(firebaseConfig).length > 0);
 let app;
 let db;
