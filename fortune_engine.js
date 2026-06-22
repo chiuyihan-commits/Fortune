@@ -217,17 +217,26 @@ window.forceGoHome = function () {
 };
 
 // ==========================================
-// ★ 實體返回鍵監聽 (popstate) 終極防呆版
+// ★ 實體返回鍵監聽 (popstate) 終極完美融合版
 // ==========================================
 window.addEventListener('popstate', async function (e) {
-    const modal1 = document.getElementById('deity-select-modal');
-    const modal2 = document.getElementById('quick-add-deity-modal');
     let isModalIntercepted = false;
 
+    // 1. 全域彈窗攔截
+    const openModals = document.querySelectorAll('.modal');
+    openModals.forEach(m => {
+        if (m.style.display === 'flex' || m.style.display === 'block') {
+            m.style.display = 'none';
+            isModalIntercepted = true;
+        }
+    });
+
+    const modal1 = document.getElementById('deity-select-modal');
+    const modal2 = document.getElementById('quick-add-deity-modal');
     if (modal2 && modal2.style.display === 'flex') { modal2.style.display = 'none'; isModalIntercepted = true; }
     if (modal1 && modal1.style.display === 'flex') { modal1.style.display = 'none'; isModalIntercepted = true; }
+
     if (isModalIntercepted) {
-        // ★ 補回被瀏覽器強制退回的歷史紀錄，維持網址與畫面同步！
         const activePage = document.querySelector('.page.active');
         if (activePage) {
             const activeId = activePage.id.replace('page-', '');
@@ -236,42 +245,69 @@ window.addEventListener('popstate', async function (e) {
         return;
     }
 
-    // 紀錄當下捲軸位置 (保留原本的)
+    // ==========================================
+    // 🚪 訴求一：首頁防誤觸退出與「關廟門動畫」
+    // ==========================================
+    // 如果退回到沒有 state 且 hash 為空（首頁），準備離開網頁
+    if (!e.state && (!window.location.hash || window.location.hash === '')) {
+        //const isExit = await window.showConfirm("🔮 您準備要離開廟宇了嗎？", "離開確認");
+        
+        //if (isExit) {
+            const splashEl = document.getElementById('app-splash-screen');
+            if (splashEl) {
+                // 將開場遮罩拉回最上層
+                splashEl.style.display = 'flex';
+                splashEl.style.opacity = '1';
+                splashEl.style.zIndex = '99999';
+                
+                // 觸發 CSS 關門動畫
+                splashEl.classList.remove('doors-opening'); 
+                
+                // 等待動畫結束後關閉與轉址
+                setTimeout(() => {
+                    try { window.close(); } catch(err) {}
+                    window.location.replace("about:blank"); 
+                }, 1500); 
+            }
+            return; 
+        //} else {
+            // 反悔：鎖住畫面維持現狀
+        //    window.history.pushState({ page: 'home' }, '', '#home');
+        //    return;
+        //}
+    }
+
+    // ==========================================
+    // 🌟 保留你原本的邏輯：紀錄捲軸位置 & 設定頁自動存檔
+    // ==========================================
     const activePage = document.querySelector('.page.active');
     if (activePage) {
         const activeId = activePage.id.replace('page-', '');
         const mainEl = document.querySelector('main');
+        window.scrollMemory = window.scrollMemory || {};
         window.scrollMemory[activeId] = { win: window.scrollY, main: mainEl ? mainEl.scrollTop : 0, page: activePage.scrollTop };
 
-        // ★ 核心修正 3：智慧快照比對！如果人在設定頁，自動儲存，且「有修改」才跳 Toast
         const savePages = ['settings', 'settings-bg', 'settings-image', 'settings-anim', 'settings-cup-anim', 'settings-normal', 'settings-mode', 'settings-backup', 'manage-deities', 'manage-systems', 'edit-deity', 'edit-system', 'edit-single-poem'];
 
         if (savePages.includes(activeId)) {
-            // 1. 拍下存檔前的「舊設定快照」
             const oldSettingsStr = JSON.stringify(typeof settings !== 'undefined' ? settings : {});
-
-            // 2. 執行存檔 (此時會讀取畫面上最新的輸入值並覆寫 settings)
             if (typeof window.saveSettings === 'function') window.saveSettings();
-
-            // 3. 拍下存檔後的「新設定快照」
             const newSettingsStr = JSON.stringify(typeof settings !== 'undefined' ? settings : {});
 
-            // 4. 比對！如果不一樣，才顯示 Toast
             if (oldSettingsStr !== newSettingsStr) {
-                if (typeof window.showToast === 'function') {
-                    window.showToast("💾 已自動儲存變更");
-                }
+                if (typeof window.showToast === 'function') window.showToast("💾 已自動儲存變更");
             }
         }
     }
 
-    // 判斷各模組是否有未儲存的資料
+    // ==========================================
+    // 🌟 保留你原本的邏輯：未儲存資料的防護網
+    // ==========================================
     let hasSimpleData = (typeof simpleSessionHistory !== 'undefined' && simpleSessionHistory.length > 0) ||
         (typeof simpleTempCups !== 'undefined' && simpleTempCups.some(c => c !== null));
     let hasCompareData = (typeof compareState !== 'undefined' && compareState.results && compareState.results.length > 0) ||
         (typeof compFuHistory !== 'undefined' && compFuHistory.length > 0);
 
-    // ★ 手機實體鍵防呆：如果正在作業中，強制攔截
     if ((typeof isQiuqianActive !== 'undefined' && isQiuqianActive) || hasSimpleData || hasCompareData || (typeof isCompareActive !== 'undefined' && isCompareActive)) {
 
         let currentPage = 'home';
@@ -286,19 +322,15 @@ window.addEventListener('popstate', async function (e) {
         else if (hasSimpleData) msg = "⚠️ 您的「問事對話」尚未儲存，確定要放棄並離開嗎？";
         else if (hasCompareData) msg = "⚠️ 您的「比較擲筊」尚未儲存，確定要放棄並離開嗎？";
 
-        const confirmed = typeof window.smartConfirm === 'function' ? await window.smartConfirm(msg, "中斷確認") : confirm(msg);
+        //精美的showConfim視窗，考量程式運作安全性捨去不用
+        //const confirmed = typeof window.smartConfirm === 'function' ? await window.smartConfirm(msg, "中斷確認") : confirm(msg);
+        const confirmed = confirm(msg); // 🛑 強制呼叫原生視窗凍結實體返回鍵
 
         if (confirmed) {
-            // 1. 確定離開：清空所有防呆鎖定狀態
             if (typeof isQiuqianActive !== 'undefined') isQiuqianActive = false;
             if (hasSimpleData && typeof window.resetSimple === 'function') window.resetSimple(true);
             if ((hasCompareData || (typeof isCompareActive !== 'undefined' && isCompareActive)) && typeof window.resetCompare === 'function') window.resetCompare(true);
 
-            // 2. ★ 終極解法：自然退回
-            // 🗑️ 請把上次加的 replaceState('home') 和 renderPage('home') 等邏輯刪除！
-            // ✨ 改成以下這行：呼叫瀏覽器原生返回。
-            // 系統解鎖後，呼叫 back() 會自然觸發下一次正常的 popstate，
-            // 畫面就會滑順地回到「選神明」（或其他你進來前的頁面），且堆疊完全乾淨！
             setTimeout(() => {
                 window.history.back();
             }, 10);
@@ -306,19 +338,14 @@ window.addEventListener('popstate', async function (e) {
         return;
     }
 
-    // 若無未儲存資料，正常切換頁面
+    // ==========================================
+    // 🌟 換頁渲染
+    // ==========================================
     const targetPage = e.state ? e.state.page : 'home';
+    const currentHash = window.location.hash.replace('#', '') || 'home';
 
-    // ★ 核心修改：把原本判斷 targetPage === 'home' 就 location.reload() 的毒瘤拔掉！
-    // 不管退到哪一頁，通通只做純前端畫面切換
-    if (typeof renderPage === 'function') {
-        renderPage(targetPage);
-    }
-
-    // 如果退回的是首頁，靜默更新一下紀錄列表
-    if (targetPage === 'home' && typeof renderRecords === 'function') {
-        renderRecords();
-    }
+    if (typeof renderPage === 'function') renderPage(targetPage || currentHash);
+    if ((targetPage === 'home' || currentHash === 'home') && typeof renderRecords === 'function') renderRecords();
 });
 
 
