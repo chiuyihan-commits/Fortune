@@ -670,7 +670,7 @@ window.customPoemTemplates['xuantian_shenji'] = function (poem, cleanLotNum, tem
         <div style="text-align: center; margin-bottom: 1.5cqw; width: 100%;">
             <div style="display: inline-flex; flex-direction: column; align-items: center; background-color: #0D47A1; color: #fff; padding: 1.5cqw 6cqw; clip-path: polygon(8% 0%, 92% 0%, 100% 100%, 0% 100%);">
                 <div style="font-size: 5.5cqw; font-weight: bold; letter-spacing: 0.5em;">${tName.split('').reverse().join('')}</div>
-                <div style="font-size: 8cqw; font-weight: bold; letter-spacing: 0.2em; margin-top: 0.5cqw;">籤靈應感帝上帝</div>
+                <div style="font-size: 8cqw; font-weight: bold; letter-spacing: 0.2em; margin-top: 0.5cqw;">籤靈應感帝上天玄</div>
             </div>
         </div>
     `;

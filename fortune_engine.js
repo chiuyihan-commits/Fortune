@@ -1,3 +1,187 @@
+// ==========================================
+// ★ 修正版：全域籤號文字轉換器 (改用 籤王0、籤首201、籤尾202)
+// ==========================================
+window.formatLotName = function (num) {
+    const val = Number(num);
+    if (val === 0) return "籤王";
+    if (val === 201) return "籤首"; // 101 修正為 201
+    if (val === 202) return "籤尾"; // 102 修正為 202
+    return `第 ${val} 籤`;
+};
+
+// ==========================================
+// ★ 新增：1. 擬真 CSS 筊杯隨機攤開且絕不交疊產生器 (情境 A 專用)
+// ==========================================
+window.createScatteredBobeiHTML = function (res) {
+    // 決定兩塊筊杯的正反面：聖筊(一陰一陽)、笑筊(兩陽)、蓋筊(兩陰)
+    let faces = [];
+    if (res.type === 1) {
+        faces = Math.random() > 0.5 ? ['bobei-yin', 'bobei-yang'] : ['bobei-yang', 'bobei-yin'];
+    } else if (res.text === '笑筊') {
+        faces = ['bobei-yang', 'bobei-yang'];
+    } else {
+        faces = ['bobei-yin', 'bobei-yin'];
+    }
+
+    // 為了確保 100% 不交疊：將 96x50 的沙盒切分為「左落區 (X: 2~12)」與「右落區 (X: 52~62)」
+    // 兩區中心點距離超過 45px，而單塊筊杯長 34px，因此無論怎麼 360 度旋轉都絕對不會重疊！
+    const x1 = Math.floor(Math.random() * 11) + 2;   // 2px ~ 12px
+    const y1 = Math.floor(Math.random() * 20) + 6;   // 6px ~ 25px
+    const rot1 = Math.floor(Math.random() * 360);
+
+    const x2 = Math.floor(Math.random() * 11) + 52;  // 52px ~ 62px
+    const y2 = Math.floor(Math.random() * 20) + 14;  // 14px ~ 33px
+    const rot2 = Math.floor(Math.random() * 360);
+
+    // 右側原有的聖筊、笑筊、蓋筊標示
+    const rightBadgeContent = res.imgSrc
+        ? `<img src="${res.imgSrc}" class="cup-icon-sm">`
+        : `<div class="res-dot ${res.dotClass}" style="width:32px; height:32px; font-size:16px; flex-shrink:0;">${res.char}</div>`;
+
+    return `
+        <div class="cup-drop-stage">
+            <div class="bobei-arena">
+                <div class="bobei-piece ${faces[0]}" style="--tx:${x1}px; --ty:${y1}px; --rot:${rot1}deg;"></div>
+                <div class="bobei-piece ${faces[1]}" style="--tx:${x2}px; --ty:${y2}px; --rot:${rot2}deg;"></div>
+            </div>
+            <div class="cup-badge-delayed">
+                ${rightBadgeContent}
+                <span class="cup-res-label-text" style="white-space:nowrap;">${res.text}</span>
+            </div>
+        </div>
+    `;
+};
+
+// ==========================================
+// ★ 新增：2. 取得當前籤詩系統的最大籤數
+// ==========================================
+window.getActiveMaxLots = function (isMini = false) {
+    if (isMini && window.miniDrawContext && window.miniDrawContext.totalLots) {
+        return parseInt(window.miniDrawContext.totalLots) || 100;
+    }
+    if (typeof currentMode !== 'undefined' && currentMode === 'normal') {
+        return (typeof currentSystem !== 'undefined' && currentSystem && currentSystem.total)
+            ? parseInt(currentSystem.total)
+            : (settings.customTotal || 100);
+    }
+    return (typeof currentSystem !== 'undefined' && currentSystem && currentSystem.total)
+        ? parseInt(currentSystem.total)
+        : 100;
+};
+
+// ==========================================
+// ★ 新增：3. 判斷是否為使用者上傳的自訂籤筒圖
+// ==========================================
+window.hasCustomQiantongImg = function (qtUrl) {
+    if (!qtUrl) return false;
+    return qtUrl.startsWith('data:') || qtUrl.startsWith('http') || qtUrl.startsWith('./');
+};
+
+// ==========================================
+// ★ 升級版：竹籤與抽屜專用中文籤號轉換器
+// (如：第一首、第十首、第十八首、第二十首、第六十五首、頭籤、籤王；白沙屯/山邊特例顯示第一〇一首)
+// ==========================================
+window.formatStickCnLot = function (num, isMini = false) {
+    const n = Number(num);
+
+    // 自動偵測當前使用的籤詩系統 ID
+    let activeSysId = '';
+    if (isMini && window.miniDrawContext) {
+        const tool = window.miniDrawContext.tool || 'simple';
+        const selId = document.getElementById(`${tool}-deity-sel`)?.value;
+        const currentDeities = typeof getOrderedDeities === 'function' ? getOrderedDeities() : (window.deities || []);
+        const d = currentDeities.find(x => x.id === selId);
+        if (d && d.sysId) activeSysId = d.sysId;
+    } else if (typeof currentSystem !== 'undefined' && currentSystem && currentSystem.id) {
+        activeSysId = currentSystem.id;
+    } else if (typeof currentDeity !== 'undefined' && currentDeity && currentDeity.sysId) {
+        activeSysId = currentDeity.sysId;
+    }
+
+    const isBaishatunOrShanbian = (activeSysId === 'Baishatun_Mazu' || activeSysId === 'Shanbian_Mazu');
+
+    // ★ 特例判斷：0 號或 101 號
+    if (n === 0) {
+        return isBaishatunOrShanbian ? "第一〇一首" : "籤王";
+    }
+    if (n === 101) {
+        return "第一〇一首";
+    }
+    if (n === 201) return "頭籤";
+    if (n === 102 || n === 202) return "籤尾";
+    if (n === 100) return "第一百首";
+
+    const cnNums = ["〇", "一", "二", "三", "四", "五", "六", "七", "八", "九"];
+    let cnStr = "";
+    if (n < 10) {
+        cnStr = cnNums[n];
+    } else if (n === 10) {
+        cnStr = "十";
+    } else if (n < 20) {
+        cnStr = "十" + cnNums[n % 10]; // 11~19 -> 十一 ~ 十九
+    } else if (n < 100) {
+        const tens = Math.floor(n / 10);
+        const units = n % 10;
+        cnStr = cnNums[tens] + "十" + (units > 0 ? cnNums[units] : ""); // 20->二十, 65->六十五
+    } else {
+        cnStr = String(n);
+    }
+    return `第${cnStr}首`;
+};
+
+// ==========================================
+// ★ 更新：4. 動態籤筒與左方抽出竹籤渲染引擎 (採用中文直書單行籤支)
+// ==========================================
+window.renderCylinderVisualHTML = function (options = {}) {
+    const { isShaking = false, drawnLot = null, isMini = false } = options;
+    const qt = typeof getCurrentQtImages === 'function' ? getCurrentQtImages() : { static: '🏺', active: '🏺' };
+    const targetImg = isShaking || drawnLot !== null ? qt.active : qt.static;
+    const totalLots = window.getActiveMaxLots(isMini);
+
+    // ★ 若已抽出籤號，在左邊產生一支寫著「傳統中文數字 (如：第六十五首)」的單行直書紅頭竹籤
+    let leftStickHtml = '';
+    if (drawnLot !== null && drawnLot !== undefined) {
+        const lotText = window.formatStickCnLot(drawnLot, isMini);
+        leftStickHtml = `<div class="drawn-single-stick"><span>${lotText}</span></div>`;
+    }
+
+    // 優先權判斷：若使用者有上傳自訂籤筒圖片，優先顯示自訂圖片！
+    if (window.hasCustomQiantongImg(targetImg)) {
+        const shakeCls = (isShaking && !targetImg.startsWith('data:image/gif')) ? 'shake-anim' : '';
+        return `
+            <div class="css-cylinder-scene" style="pointer-events:none;">
+                ${leftStickHtml}
+                <img src="${targetImg}" class="${shakeCls}" style="height:96px; object-fit:contain; pointer-events:none;">
+            </div>
+        `;
+    }
+
+    // 若無自訂圖片：使用 CSS 繪製擬真籤筒 + 模擬該系統最大籤數的竹籤群
+    const visualCount = Math.min(Math.max(totalLots, 5), 28);
+    let sticksHtml = '';
+    for (let i = 0; i < visualCount; i++) {
+        const ratio = visualCount > 1 ? i / (visualCount - 1) : 0.5;
+        const sx = Math.round(4 + ratio * 42);
+        const sy = Math.round((i % 4) * 3);
+        const srot = Math.round((ratio - 0.5) * 26 + ((i % 3) - 1) * 3);
+        const sdelay = ((i % 6) * 0.035).toFixed(2);
+        sticksHtml += `<div class="qt-stick-item" style="--sx:${sx}px; --sy:${sy}px; --srot:${srot}deg; --sdelay:${sdelay}s;"></div>`;
+    }
+
+    return `
+        <div class="css-cylinder-scene" style="pointer-events:none;">
+            ${leftStickHtml}
+            <div class="css-qiantong-box ${isShaking ? 'is-shaking' : ''}">
+                <div class="qt-sticks-bundle">${sticksHtml}</div>
+                <div class="qt-body-front">
+                    <div class="qt-label-plate">靈籤</div>
+                    <div class="qt-total-badge">${totalLots}籤</div>
+                </div>
+            </div>
+        </div>
+    `;
+};
+
 // 新增：強化版圖片判斷器
 function isImageUrl(str) {
     if (!str) return false;
@@ -251,27 +435,27 @@ window.addEventListener('popstate', async function (e) {
     // 如果退回到沒有 state 且 hash 為空（首頁），準備離開網頁
     if (!e.state && (!window.location.hash || window.location.hash === '')) {
         //const isExit = await window.showConfirm("🔮 您準備要離開廟宇了嗎？", "離開確認");
-        
+
         //if (isExit) {
-            const splashEl = document.getElementById('app-splash-screen');
-            if (splashEl) {
-                // 將開場遮罩拉回最上層
-                splashEl.style.display = 'flex';
-                splashEl.style.opacity = '1';
-                splashEl.style.zIndex = '99999';
-                
-                // 觸發 CSS 關門動畫
-                splashEl.classList.remove('doors-opening'); 
-                
-                // 等待動畫結束後關閉與轉址
-                setTimeout(() => {
-                    try { window.close(); } catch(err) {}
-                    window.location.replace("about:blank"); 
-                }, 1500); 
-            }
-            return; 
+        const splashEl = document.getElementById('app-splash-screen');
+        if (splashEl) {
+            // 將開場遮罩拉回最上層
+            splashEl.style.display = 'flex';
+            splashEl.style.opacity = '1';
+            splashEl.style.zIndex = '99999';
+
+            // 觸發 CSS 關門動畫
+            splashEl.classList.remove('doors-opening');
+
+            // 等待動畫結束後關閉與轉址
+            setTimeout(() => {
+                try { window.close(); } catch (err) { }
+                window.location.replace("about:blank");
+            }, 1500);
+        }
+        return;
         //} else {
-            // 反悔：鎖住畫面維持現狀
+        // 反悔：鎖住畫面維持現狀
         //    window.history.pushState({ page: 'home' }, '', '#home');
         //    return;
         //}
@@ -348,7 +532,6 @@ window.addEventListener('popstate', async function (e) {
     if ((targetPage === 'home' || currentHash === 'home') && typeof renderRecords === 'function') renderRecords();
 });
 
-
 // 核心渲染函數
 function renderPage(p) {
     window.isThrowingCup = false; // ★ 每次換頁時，強制解除所有的擲筊鎖定，避免卡死
@@ -370,9 +553,14 @@ function renderPage(p) {
     // 2. ★強制顯示全域 Header 與動態返回按鈕
     const globalHeader = document.querySelector('header');
     const backBtn = document.getElementById('back-btn');
+    const trashBtn = document.getElementById('trash-btn'); // 🌟 抓取新的垃圾桶按鈕
+
     if (backBtn) {
         backBtn.style.display = (p === 'home') ? 'none' : 'block';
-
+        // 🌟 新增這裡：只有在紀錄頁面 (records) 顯示垃圾桶
+        if (trashBtn) {
+            trashBtn.style.display = (p === 'records') ? 'block' : 'none';
+        }
         // ★ 終極修正 1：不再強制呼叫 saveAndGoBack()，統一交給具備快照比對功能的 goBack() 接管！
         if (savePages.includes(p)) {
             backBtn.innerText = '💾 & ↩';
@@ -523,6 +711,11 @@ function renderPage(p) {
         case 'home':
         default:
             title = "擲筊助手";
+            break;
+
+        case 'trash':
+            title = "🗑️ 垃圾桶";
+            if (typeof window.renderTrashRecords === 'function') window.renderTrashRecords();
             break;
     }
 
@@ -721,10 +914,15 @@ function initQiuqian() {
         if (typeof updateCupDisplay === 'function') updateCupDisplay('perm-cup', { text: '', type: -1 });
         if (permCup) permCup.style.display = 'none';
 
+        // 🌟 新增：如果跳過請示，就把左邊的手動按鈕區塊隱藏
+        //const manualContainer = document.getElementById('manual-perm-container');
+        //if (manualContainer) manualContainer.style.display = 'none';
+        const manualBtn = document.getElementById('btn-perm-manual');
+        if (manualBtn) manualBtn.style.display = 'none';
         if (btnPerm) {
             btnPerm.innerText = "前往抽籤 ❯";
-            btnPerm.style.display = 'block'; // ★ 破案關鍵：強制顯示！
-            btnPerm.disabled = false;        // ★ 破案關鍵：強制解鎖！
+            btnPerm.style.display = 'block';
+            btnPerm.disabled = false;
             btnPerm.onclick = function () {
                 document.getElementById('step-1').style.display = 'none';
                 document.getElementById('step-2').style.display = 'flex';
@@ -736,10 +934,26 @@ function initQiuqian() {
         if (permCup) permCup.style.display = '';
         if (typeof updateCupDisplay === 'function') updateCupDisplay('perm-cup', { text: '準備請示', type: -1 });
 
+        // 🌟 新增：重置左右按鈕群組
+        const permActionGroup = document.getElementById('perm-action-group');
+        if (permActionGroup) permActionGroup.style.display = 'flex';
+
+        // 重置左側手動按鈕
+        window.manualPermCount = 0;
+        const manualBtn = document.getElementById('btn-perm-manual');
+        if (manualBtn) {
+            manualBtn.innerHTML = "💮 已得聖筊 (0/3)";
+            manualBtn.style.background = "#333";
+            manualBtn.style.color = "var(--accent)";
+            manualBtn.style.borderColor = "#555";
+            manualBtn.disabled = false;
+        }
+
+        // 重置右側 APP 擲筊按鈕
         if (btnPerm) {
             btnPerm.innerText = "🙏 擲筊請示";
-            btnPerm.style.display = 'block'; // ★ 破案關鍵：強制顯示！
-            btnPerm.disabled = false;        // ★ 破案關鍵：強制解鎖！
+            btnPerm.style.display = 'block';
+            btnPerm.disabled = false;
             btnPerm.onclick = window.askPermission;
         }
     }
@@ -777,6 +991,40 @@ function showIcon(d) {
 }
 
 // ==========================================
+// ★ 新增：實體手動已得聖筊 (連點3次防呆 - 完美按鈕版)
+// ==========================================
+window.manualPermCount = 0;
+window.manualPermClick = function () {
+    window.manualPermCount++;
+    const manualBtn = document.getElementById('btn-perm-manual');
+
+    if (typeof triggerVibration === 'function') triggerVibration(50); // 微震動回饋
+
+    if (window.manualPermCount >= 3) {
+        // 點滿 3 次：按鈕變成高亮金色，並鎖定
+        if (manualBtn) {
+            manualBtn.innerHTML = "💮 允准抽籤";
+            manualBtn.style.background = "var(--accent)";
+            manualBtn.style.color = "#000";
+            manualBtn.style.borderColor = "var(--accent)";
+            manualBtn.disabled = true;
+        }
+
+        // 延遲半秒鐘讓使用者看到高亮結果，再優雅切換畫面
+        setTimeout(() => {
+            document.getElementById('step-1').style.display = 'none';
+            document.getElementById('step-2').style.display = 'flex';
+            if (typeof setupDrawStep2 === 'function') setupDrawStep2();
+        }, 500);
+    } else {
+        // 還沒點滿：只更新裡面的數字
+        if (manualBtn) {
+            manualBtn.innerHTML = `💮 已得聖筊 (${window.manualPermCount}/3)`;
+        }
+    }
+};
+
+// ==========================================
 // ★ 請示神明賜籤 (加入聖筊瞬間鎖定防護)
 // ==========================================
 window.askPermission = function () {
@@ -798,7 +1046,7 @@ window.askPermission = function () {
                 if (typeof setupDrawStep2 === 'function') setupDrawStep2();
 
                 window.isThrowingCup = false; // 進入下一階段，安全解鎖
-            }, 800);
+            }, 1150);
 
             return true;
         } else { // ❌ 笑筊 或 蓋筊
@@ -913,9 +1161,11 @@ window.searchGlobalPoems = function () {
             // 判斷是否包含關鍵字，或是輸入了正確的數字(籤號)
             if (searchStr.includes(keyword) || lotKey.toString() === keyword) {
 
-                let idxText = `第${numValue}首`;
-                if (numValue === 101) idxText = "籤首";
-                if (numValue === 102) idxText = "籤尾";
+                // 搜尋結果名稱轉換修正
+                let idxText = `第 ${numValue} 首`;
+                if (numValue === 0) idxText = "籤王";
+                if (numValue === 201) idxText = "籤首"; // 101 修正為 201
+                if (numValue === 202) idxText = "籤尾"; // 102 修正為 202
 
                 // 處理預覽文字
                 let previewText = poem.l1;
@@ -1468,79 +1718,98 @@ window.resetMiniPermission = function () {
     if (btn) { btn.style.display = 'block'; btn.disabled = false; }
 };
 
-// 執行請示擲筊
+// 執行請示擲筊 (神明賜籤小視窗)
 window.tossMiniPermission = function () {
     const btn = document.getElementById('btn-mini-perm-toss');
     if (typeof window.executeThrowCupWrapper === 'function') {
         window.executeThrowCupWrapper(btn, (res) => {
             const resBox = document.getElementById('mini-perm-cup-res');
-            if (resBox) resBox.innerHTML = res.imgSrc
-                ? `<img src="${res.imgSrc}" style="height:60px; object-fit:contain; animation: popIn 0.3s;">`
-                : `<div class="res-dot ${res.dotClass}" style="width:60px;height:60px;font-size:24px;">${res.char}</div>`;
+            // ★ 套用先掉落攤開、再出現標示的動畫
+            if (resBox) resBox.innerHTML = window.createScatteredBobeiHTML(res);
 
-            if (res.type === 1) { // 聖筊：前往籤筒
+            if (res.type === 1) { // 聖筊：等攤開與標示顯示完畢後前往籤筒
                 if (btn) btn.style.display = 'none';
                 setTimeout(() => {
                     document.getElementById('mini-draw-perm-area').style.display = 'none';
                     document.getElementById('mini-draw-cylinder-area').style.display = 'block';
                     window.setupMiniCylinderMode();
-                }, 800);
-            } else { // 笑/蓋：顯示失敗選單
+                }, 1150);
+            } else { // 笑/蓋：等標示出現後顯示失敗選單
                 if (btn) btn.style.display = 'none';
-                document.getElementById('mini-perm-failed-actions').style.display = 'flex';
+                setTimeout(() => {
+                    document.getElementById('mini-perm-failed-actions').style.display = 'flex';
+                }, 650);
             }
         });
     }
 };
 
-// ==========================================
-// ★ 執行抽籤 (完美防呆 + 支援不放回設定)
-// ==========================================
+// 抽出籤號結果 (神明賜籤小視窗)
 window.executeMiniDrawResult = function () {
     const tool = window.miniDrawContext.tool || 'simple';
     const total = window.miniDrawContext.totalLots;
     const noPutBackEl = document.getElementById(`${tool}-no-put-back`);
     const noPutBack = noPutBackEl ? noPutBackEl.checked : false;
 
+    let pool = [];
+    const selId = document.getElementById(`${tool}-deity-sel`)?.value;
+    const currentDeities = typeof getOrderedDeities === 'function' ? getOrderedDeities() : (window.deities || []);
+    let activeSys = null;
+
+    if (selId && selId !== 'custom') {
+        const d = currentDeities.find(x => x.id === selId);
+        if (d && d.sysId && window.poemSystems[d.sysId]) {
+            activeSys = window.poemSystems[d.sysId];
+        }
+    } else if (typeof currentSystem !== 'undefined' && currentSystem && currentSystem.id !== 'custom') {
+        activeSys = currentSystem;
+    }
+
+    if (activeSys && activeSys.content && Object.keys(activeSys.content).length > 0) {
+        pool = Object.keys(activeSys.content).map(Number);
+    } else {
+        for (let i = 1; i <= total; i++) pool.push(i);
+    }
+
+    const poolSize = pool.length;
     let rn;
+
     if (noPutBack) {
         if (!window.miniDrawContext.drawnLots) window.miniDrawContext.drawnLots = [];
-        if (window.miniDrawContext.drawnLots.length >= total) {
+        if (window.miniDrawContext.drawnLots.length >= poolSize) {
             if (typeof window.showToast === 'function') window.showToast("⚠️ 籤筒已空！為您重新洗牌");
             window.miniDrawContext.drawnLots = [];
         }
-        do { rn = Math.floor(Math.random() * total) + 1; }
-        while (window.miniDrawContext.drawnLots.includes(rn));
+        do {
+            const randIdx = Math.floor(Math.random() * poolSize);
+            rn = pool[randIdx];
+        } while (window.miniDrawContext.drawnLots.includes(rn));
         window.miniDrawContext.drawnLots.push(rn);
     } else {
-        rn = Math.floor(Math.random() * total) + 1;
+        const randIdx = Math.floor(Math.random() * poolSize);
+        rn = pool[randIdx];
     }
 
     window.miniDrawContext.lotNum = rn;
     window.miniDrawContext.currentSaints = 0;
 
-    // 1. 隱藏原本的搖晃區，顯示確認區
     document.getElementById('mini-draw-cylinder-area').style.display = 'none';
     const confirmArea = document.getElementById('mini-draw-confirm-area');
     confirmArea.style.display = 'block';
 
-    // 2. ★ 核心魔法：把搖動後的籤筒影像「植入」到請示區塊的上方
     let cylWrapper = document.getElementById('mini-confirm-cylinder-wrapper');
     if (!cylWrapper) {
         cylWrapper = document.createElement('div');
         cylWrapper.id = 'mini-confirm-cylinder-wrapper';
         cylWrapper.style.marginBottom = '10px';
-        confirmArea.insertBefore(cylWrapper, confirmArea.firstChild); // 塞到最上面
+        confirmArea.insertBefore(cylWrapper, confirmArea.firstChild);
     }
-    const qt = typeof getCurrentQtImages === 'function' ? getCurrentQtImages() : { active: '🏺' };
-    cylWrapper.innerHTML = qt.active.startsWith('data:')
-        ? `<img src="${qt.active}" style="height:100px; object-fit:contain;">`
-        : `<span style="font-size:4rem;">${qt.active}</span>`;
+    // ★ 在左邊顯示抽出的竹籤 + 右邊籤筒
+    cylWrapper.innerHTML = window.renderCylinderVisualHTML({ isShaking: false, drawnLot: rn, isMini: true });
 
-    // 3. ★ 鎖死高度魔法：固定杯象區塊的高度，防止畫面上下跳動
     const cupRes = document.getElementById('mini-draw-cup-res');
     if (cupRes) {
-        cupRes.style.height = '60px'; // 預留給筊杯的高度，文字就不會被擠了！
+        cupRes.style.height = '60px';
         cupRes.style.display = 'flex';
         cupRes.style.justifyContent = 'center';
         cupRes.style.alignItems = 'center';
@@ -1549,7 +1818,7 @@ window.executeMiniDrawResult = function () {
 
     const resEl = document.getElementById('mini-draw-result');
     if (resEl) {
-        resEl.innerText = `第 ${rn} 籤`;
+        resEl.innerText = window.formatLotName(rn);
         resEl.style.display = 'block';
         resEl.style.animation = "popIn 0.5s ease-out forwards";
     }
@@ -1564,35 +1833,19 @@ window.executeMiniDrawResult = function () {
     if (btnToss) btnToss.style.display = 'block';
 };
 
-// 執行三聖杯確認
+// 執行三聖杯確認 (神明賜籤小視窗)
 window.tossMiniConfirm = function () {
     const btn = document.getElementById('btn-mini-toss');
-
-    // ★ 1. 播放丟出去的動畫 (不論文字或圖片，都可以讓容器跳起來翻轉)
-    if (resArea) {
-        // 先顯示準備中的「兩個翻轉中的 CSS 筊杯」代表正在空中的狀態
-        resArea.innerHTML = `
-            <div style="display:inline-flex;" class="anim-tossing">
-                <div class="css-cup cup-up" style="width:40px; height:40px;"></div>
-                <div class="css-cup cup-down" style="width:40px; height:40px;"></div>
-            </div>`;
-    }
-
-    // 將按鈕暫時鎖死防連點
     if (btn) btn.style.pointerEvents = 'none';
 
     window.executeThrowCupWrapper(btn, (res) => {
         const resArea = document.getElementById('mini-draw-cup-res');
+        // ★ 先在左邊模擬掉落攤開，右邊延遲出現聖/笑/蓋標示
+        if (resArea) resArea.innerHTML = window.createScatteredBobeiHTML(res);
+
+        // 等待 600ms 讓筊杯攤開且右邊標示浮現後，再更新計數或跳出結果
         setTimeout(() => {
-            // 直接呼叫我們剛寫好的強大生成器 (指定大小 60px)
-            if (resArea) resArea.innerHTML = window.generateCupHtml(res.type, 40, 24);
-
-            // 恢復按鈕可點擊
             if (btn) btn.style.pointerEvents = 'auto';
-
-            //if (resArea) resArea.innerHTML = res.imgSrc
-            //    ? `<img src="${res.imgSrc}" style="height:60px; object-fit:contain; animation: popIn 0.3s;">`
-            //    : `<div class="res-dot ${res.dotClass}" style="width:60px;height:60px;font-size:24px;">${res.char}</div>`;
 
             if (res.type === 1) { // 聖筊
                 window.miniDrawContext.currentSaints++;
@@ -1602,15 +1855,14 @@ window.tossMiniConfirm = function () {
                 if (window.miniDrawContext.currentSaints >= window.miniDrawContext.targetSaints) {
                     if (btn) btn.style.display = 'none';
                     setTimeout(() => {
-                        if (typeof window.showToast === 'function') window.showToast(`🎉 成功求得 第 ${window.miniDrawContext.lotNum} 籤！`);
+                        if (typeof window.showToast === 'function') window.showToast(`🎉 成功求得 ${window.formatLotName(window.miniDrawContext.lotNum)}！`);
 
                         const input = document.getElementById(window.miniDrawContext.targetInputId);
                         if (input) input.value = window.miniDrawContext.lotNum;
 
-                        // 🌟 自動填入聖筊紀錄，讓儲存時能直接讀到完美的結果！
                         const tool = window.miniDrawContext.tool;
                         const target = window.miniDrawContext.targetSaints;
-                        const autoCups = new Array(target).fill(1); // 產生陣列 [1, 1, 1]
+                        const autoCups = new Array(target).fill(1);
                         if (tool === 'simple') window.simpleTempCups = autoCups;
                         if (tool === 'compare') window.compFuTempCups = autoCups;
 
@@ -1625,7 +1877,7 @@ window.tossMiniConfirm = function () {
                 const failedActions = document.getElementById('mini-confirm-failed-actions');
                 if (failedActions) failedActions.style.display = 'flex';
             }
-        }, 600); // 這裡的 600ms 與 CSS 的 tossCupAnim 動畫時間對齊
+        }, 650);
     });
 };
 
@@ -1635,7 +1887,7 @@ window.confirmMiniDraw = function () {
     const input = document.getElementById(window.miniDrawContext.targetInputId);
     if (input) {
         input.value = num;
-        if (typeof window.showToast === 'function') window.showToast(`✅ 已帶入第 ${num} 籤`);
+        if (typeof window.showToast === 'function') window.showToast(`✅ 已帶入${window.formatLotName(num)}`);
     }
     window.closeMiniDraw();
 };
@@ -1671,7 +1923,7 @@ window.closeMiniDraw = async function (forceClose = false) {
 // ==========================================
 // 🌊 籤號波浪動畫產生器 (全域小工具)
 // ==========================================
-window.getWaveHtml = function() {
+window.getWaveHtml = function () {
     return `
         <div style="display:inline-flex; gap:4px; align-items:center; vertical-align:middle; margin:0 4px; height:1em;">
             <div style="width:4px; height:20px; background-color:var(--accent); border-radius:2px; animation: waveScale 0.8s ease-in-out infinite; animation-delay: 0s;"></div>
@@ -1693,12 +1945,7 @@ window.toggleMiniTapShake = function (e) {
         window.isMiniShaking = true;
         // 🌟 搖晃時：顯示波浪動畫
         if (instr) instr.innerHTML = `<div style="font-size:1.3rem; margin-bottom:5px; font-weight:bold;">第 ${window.getWaveHtml()} 籤</div><span class='breathing-text' style='font-size:0.9rem; color:#aaa;'>✨ 抽籤中...憑直覺再次點擊出籤</span>`;
-        if (area) {
-            const qt = typeof getCurrentQtImages === 'function' ? getCurrentQtImages() : { static: '🏺', active: '🏺' };
-            area.innerHTML = qt.active.startsWith('data:')
-                ? `<img src="${qt.active}" class="shake-anim" style="height:100px; object-fit:contain;">`
-                : `<span style="font-size:4rem;" class="shake-anim">${qt.active}</span>`;
-        }
+        if (area) area.innerHTML = window.renderCylinderVisualHTML({ isShaking: true, isMini: true });
     } else {
         window.isMiniShaking = false;
         area.onclick = null; // 防連點
@@ -1714,12 +1961,7 @@ window.startMiniShake = function (e) {
     // 🌟 搖晃時：顯示波浪動畫
     if (instr) instr.innerHTML = `<div style="font-size:1.3rem; margin-bottom:5px; font-weight:bold;">第 ${window.getWaveHtml()} 籤</div><span class='breathing-text' style='font-size:0.9rem; color:#aaa;'>✨ 中...鬆開出籤</span>`;
     // ★ 修正 2：按壓搖晃時，切換為「自訂搖晃籤筒」，並維持 100px 高度防跳動
-    if (area) {
-        const qt = typeof getCurrentQtImages === 'function' ? getCurrentQtImages() : { static: '🏺', active: '🏺' };
-        area.innerHTML = qt.active.startsWith('data:')
-            ? `<img src="${qt.active}" class="shake-anim" style="height:100px; object-fit:contain;">`
-            : `<span style="font-size:4rem;" class="shake-anim">${qt.active}</span>`;
-    }
+    if (area) area.innerHTML = window.renderCylinderVisualHTML({ isShaking: true, isMini: true });
 };
 
 window.stopMiniShake = function (e) {
@@ -1770,21 +2012,20 @@ window.enforceAnimLimit = function (input) {
 };
 
 // ==========================================
-// ★ 2. 一般求籤主畫面 (完美融合舊版視覺與新版秒數引擎)
+// ★ 2. 一般求籤主畫面 (完美融合 CSS 動態竹籤筒與秒數引擎)
 // ==========================================
-window.setupDrawStep2 = function() {
+window.setupDrawStep2 = function () {
     if (typeof isDrawing !== 'undefined') window.isDrawing = false;
     if (typeof isShaking !== 'undefined') window.isShaking = false;
-    
+
     const animArea = document.getElementById('draw-anim-area');
     const instr = document.getElementById('draw-instruction');
     const btn = document.getElementById('btn-draw');
-    const imgs = typeof getCurrentQtImages === 'function' ? getCurrentQtImages() : { static: '🏺', active: '🏺' };
 
-    let content = imgs.static.startsWith('data:')
-        ? `<img src="${imgs.static}" style="height:100px; object-fit:contain; pointer-events:none; user-select:none; -webkit-touch-callout:none;">`
-        : `<span style="font-size:4rem; user-select:none; pointer-events:none; -webkit-touch-callout:none;">${imgs.static}</span>`;
-    if (animArea) animArea.innerHTML = content;
+    // 🌟 套用全新動態籤筒渲染引擎 (靜止狀態)
+    if (animArea) {
+        animArea.innerHTML = window.renderCylinderVisualHTML({ isShaking: false, isMini: false });
+    }
 
     if (animArea && animArea.parentNode) {
         const newAnimArea = animArea.cloneNode(true);
@@ -1814,7 +2055,7 @@ window.setupDrawStep2 = function() {
     if (mode === 'timer') {
         if (instr) instr.innerHTML = `<div style="font-size:1.3rem; margin-bottom:5px; font-weight:bold;">第 ？ 籤</div><span style="font-size:0.9rem; color:#aaa;">👇點擊籤筒 ${animSec} 秒後出籤👇</span>`;
         targetArea.style.cursor = "pointer";
-        targetArea.addEventListener('click', window.startTimerDrawEngine); 
+        targetArea.addEventListener('click', window.startTimerDrawEngine);
     } else if (mode === 'touch') {
         if (instr) instr.innerHTML = `<div style="font-size:1.3rem; margin-bottom:5px; font-weight:bold;">第 ？ 籤</div><span style="font-size:0.9rem; color:#aaa;">👇壓住撥動、鬆開抽籤👇</span>`;
         targetArea.addEventListener('touchstart', window.startTouchShake || window.startShake, { passive: false });
@@ -1830,7 +2071,7 @@ window.setupDrawStep2 = function() {
 };
 
 // ==========================================
-// ★ 3. 神明賜籤小視窗 (同步支援秒數引擎)
+// ★ 3. 神明賜籤小視窗 (同步支援 CSS 動態竹籤筒與秒數引擎)
 // ==========================================
 window.setupMiniCylinderMode = function () {
     const mode = (typeof settings !== 'undefined' && settings.drawMode) ? settings.drawMode : 'timer';
@@ -1840,10 +2081,8 @@ window.setupMiniCylinderMode = function () {
 
     if (!area) return;
 
-    const qt = typeof getCurrentQtImages === 'function' ? getCurrentQtImages() : { static: '🏺', active: '🏺' };
-    area.innerHTML = qt.static.startsWith('data:')
-        ? `<img src="${qt.static}" style="height:100px; object-fit:contain; pointer-events:none;">`
-        : `<span style="font-size:4rem; pointer-events:none;">${qt.static}</span>`;
+    // 🌟 套用全新動態籤筒渲染引擎 (小視窗靜止狀態)
+    area.innerHTML = window.renderCylinderVisualHTML({ isShaking: false, isMini: true });
 
     // 移除舊監聽器 (保留你的 cloneNode 魔法)
     if (area.parentNode) {
@@ -1868,7 +2107,9 @@ window.setupMiniCylinderMode = function () {
     const animSec = (typeof settings !== 'undefined' && settings.animSeconds) ? parseFloat(settings.animSeconds) : 2;
     if (btn) btn.style.display = 'none';
 
-    // 🌟 靜止時：預設顯示「第 ？ 籤」
+    // 🌟 靜止時：預設顯示「第 ？ 籤」 (並確保提示框顯示)
+    if (instr) instr.style.display = 'block';
+
     if (mode === 'touch') {
         if (instr) instr.innerHTML = `<div style='font-size:1.3rem; margin-bottom:5px; font-weight:bold;'>第 ？ 籤</div><span style='font-size:0.9rem; color:#aaa;'>👇壓住撥動、鬆開抽籤👇</span>`;
         targetArea.style.userSelect = "none"; targetArea.style.webkitTouchCallout = "none";
@@ -1884,7 +2125,7 @@ window.setupMiniCylinderMode = function () {
         targetArea.addEventListener('click', window.toggleMiniTapShake);
     } else {
         if (instr) instr.innerHTML = `<div style='font-size:1.3rem; margin-bottom:5px; font-weight:bold;'>第 ？ 籤</div><span style='font-size:0.9rem; color:#aaa;'>👇點擊籤筒 ${animSec} 秒後出籤👇</span>`;
-        targetArea.style.userSelect = "none"; 
+        targetArea.style.userSelect = "none";
         targetArea.style.webkitTouchCallout = "none";
         targetArea.style.cursor = "pointer";
         targetArea.addEventListener('click', window.startMiniTimerDrawEngine);
@@ -1894,7 +2135,7 @@ window.setupMiniCylinderMode = function () {
 // ==========================================
 // ★ 主畫面求籤引擎 (一般求籤專用)
 // ==========================================
-window.startTimerDrawEngine = function(e) {
+window.startTimerDrawEngine = function (e) {
     if (e && e.cancelable) e.preventDefault();
 
     const targetArea = document.getElementById('draw-anim-area');
@@ -1906,92 +2147,78 @@ window.startTimerDrawEngine = function(e) {
         const savedData = JSON.parse(localStorage.getItem('zb_settings') || '{}');
         mode = savedData.drawMode || (typeof settings !== 'undefined' ? settings.drawMode : 'timer');
         animSec = (typeof settings !== 'undefined' && settings.animSeconds) ? parseFloat(settings.animSeconds) : (savedData.animSeconds ? parseFloat(savedData.animSeconds) : 2);
-    } catch (err) {}
+    } catch (err) { }
 
     // 🌟 核心煞車系統：拔除動畫，恢復靜止籤筒
     const stopShakingUI = () => {
         if (instr) instr.innerHTML = "✨ 抽籤中...";
         if (targetArea) {
-            const qt = typeof getCurrentQtImages === 'function' ? getCurrentQtImages() : { static: '🏺' };
-            if (isImageUrl(qt.static)) {
-                targetArea.innerHTML = `<img src="${qt.static}" style="height:100px; max-width:100%; object-fit:contain; pointer-events:none;" onerror="this.onerror=null; this.outerHTML='<span style=\\'font-size:4rem; pointer-events:none;\\'>🏺</span>';">`;
-            } else {
-                targetArea.innerHTML = `<span style="display:inline-block; font-size:4rem; max-width:100%; pointer-events:none; word-break:break-all; overflow-wrap:anywhere;">${qt.static}</span>`;
-            }
+            targetArea.innerHTML = window.renderCylinderVisualHTML({ isShaking: false, isMini: false });
         }
+    };
+
+    // 統一出籤觸發器 (相容 executeDrawResult 與 finishDrawLot)
+    const triggerDrawFinish = () => {
+        if (typeof window.executeDrawResult === 'function') window.executeDrawResult();
+        else if (typeof finishDrawLot === 'function') finishDrawLot();
     };
 
     if (mode === 'tap') {
         if (window.isDrawing) {
             window.isDrawing = false;
             stopShakingUI(); // 👉 停止搖晃
-            if (typeof window.executeDrawResult === 'function') window.executeDrawResult();
+            triggerDrawFinish();
         } else {
             window.isDrawing = true;
-            // 🌟 搖晃時：顯示波浪動畫
+            // 🌟 搖晃時：顯示波浪動畫與竹籤晃動
             if (instr) instr.innerHTML = `<div style="font-size:1.3rem; margin-bottom:5px; font-weight:bold;">第 ${window.getWaveHtml()} 籤</div><span style="animation: splashBreathe 1.5s infinite; font-size:0.9rem; color:#aaa;">✨撥動籤支..憑直覺再次點擊抽籤</span>`;
             if (targetArea) {
-                const qt = typeof getCurrentQtImages === 'function' ? getCurrentQtImages() : { active: '🏺' };
-                if (isImageUrl(qt.active)) {
-                    targetArea.innerHTML = `<img src="${qt.active}" class="shake-anim" style="height:100px; max-width:100%; object-fit:contain; pointer-events:none;" onerror="this.onerror=null; this.outerHTML='<span style=\\'font-size:4rem; pointer-events:none;\\'>🏺</span>';">`;
-                } else {
-                    targetArea.innerHTML = `<span class="shake-anim" style="display:inline-block; font-size:4rem; max-width:100%; pointer-events:none; word-break:break-all; overflow-wrap:anywhere;">${qt.active}</span>`;
-                }
+                targetArea.innerHTML = window.renderCylinderVisualHTML({ isShaking: true, isMini: false });
             }
         }
-        return; 
+        return;
     }
 
-    if (window.isDrawing) return; 
+    if (window.isDrawing) return;
     window.isDrawing = true;
-    
-    // 🌟 搖晃時：顯示波浪動畫
+
+    // 🌟 搖晃時：顯示波浪動畫與竹籤晃動
     if (instr) instr.innerHTML = `<div style="font-size:1.3rem; margin-bottom:5px; font-weight:bold;">第 ${window.getWaveHtml()} 籤</div><span style="animation: splashBreathe 1.5s infinite; font-size:0.9rem; color:#aaa;">✨ 撥動籤支...${animSec} 秒後抽籤</span>`;
-    
+
     if (targetArea) {
-        const qt = typeof getCurrentQtImages === 'function' ? getCurrentQtImages() : { active: '🏺' };
-        if (isImageUrl(qt.active)) {
-            targetArea.innerHTML = `<img src="${qt.active}" class="shake-anim" style="height:100px; max-width:100%; object-fit:contain; pointer-events:none;" onerror="this.onerror=null; this.outerHTML='<span style=\\'font-size:4rem; pointer-events:none;\\'>🏺</span>';">`;
-        } else {
-            targetArea.innerHTML = `<span class="shake-anim" style="display:inline-block; font-size:4rem; max-width:100%; pointer-events:none; word-break:break-all; overflow-wrap:anywhere;">${qt.active}</span>`;
-        }
+        targetArea.innerHTML = window.renderCylinderVisualHTML({ isShaking: true, isMini: false });
     }
-    
+
     setTimeout(() => {
-        if (!window.isDrawing) return; 
+        if (!window.isDrawing) return;
         window.isDrawing = false;
-        stopShakingUI(); // 👉 秒數到，瞬間停止搖晃
-        if (typeof window.executeDrawResult === 'function') window.executeDrawResult();
+        stopShakingUI(); // 👉 秒數到，瞬間停止搖晃並呼叫出籤
+        triggerDrawFinish();
     }, animSec * 1000);
 };
 
 // ==========================================
 // ★ 小視窗求籤引擎 (問事/比較專用)
 // ==========================================
-window.startMiniTimerDrawEngine = function(e) {
+window.startMiniTimerDrawEngine = function (e) {
     if (e && e.cancelable) e.preventDefault();
-    
+
     const targetArea = document.getElementById('mini-draw-area');
     const instr = document.getElementById('mini-draw-instruction');
-    
+
     let mode = 'timer';
     let animSec = 2;
     try {
         const savedData = JSON.parse(localStorage.getItem('zb_settings') || '{}');
         mode = savedData.drawMode || (typeof settings !== 'undefined' ? settings.drawMode : 'timer');
         animSec = (typeof settings !== 'undefined' && settings.animSeconds) ? parseFloat(settings.animSeconds) : (savedData.animSeconds ? parseFloat(savedData.animSeconds) : 2);
-    } catch (err) {}
+    } catch (err) { }
 
     // 🌟 核心煞車系統：拔除動畫，恢復靜止籤筒
     const stopShakingUI = () => {
         if (instr) instr.innerHTML = "✨ 賜籤中...";
         if (targetArea) {
-            const qt = typeof getCurrentQtImages === 'function' ? getCurrentQtImages() : { static: '🏺' };
-            if (isImageUrl(qt.static)) {
-                targetArea.innerHTML = `<img src="${qt.static}" style="height:100px; max-width:100%; object-fit:contain; pointer-events:none;" onerror="this.onerror=null; this.outerHTML='<span style=\\'font-size:4rem; pointer-events:none;\\'>🏺</span>';">`;
-            } else {
-                targetArea.innerHTML = `<span style="display:inline-block; font-size:4rem; max-width:100%; pointer-events:none; word-break:break-all; overflow-wrap:anywhere;">${qt.static}</span>`;
-            }
+            targetArea.innerHTML = window.renderCylinderVisualHTML({ isShaking: false, isMini: true });
         }
     };
 
@@ -2002,39 +2229,29 @@ window.startMiniTimerDrawEngine = function(e) {
             if (typeof window.executeMiniDrawResult === 'function') window.executeMiniDrawResult();
         } else {
             window.isMiniShaking = true;
-            // 🌟 搖晃時：顯示波浪動畫
+            // 🌟 搖晃時：顯示波浪動畫與竹籤晃動
             if (instr) instr.innerHTML = `<div style="font-size:1.3rem; margin-bottom:5px; font-weight:bold;">第 ${window.getWaveHtml()} 籤</div><span style="animation: splashBreathe 1.5s infinite; font-size:0.9rem; color:#aaa;">✨撥動籤支...憑直覺再點擊抽籤</span>`;
             if (targetArea) {
-                const qt = typeof getCurrentQtImages === 'function' ? getCurrentQtImages() : { active: '🏺' };
-                if (isImageUrl(qt.active)) {
-                    targetArea.innerHTML = `<img src="${qt.active}" class="shake-anim" style="height:100px; max-width:100%; object-fit:contain; pointer-events:none;" onerror="this.onerror=null; this.outerHTML='<span style=\\'font-size:4rem; pointer-events:none;\\'>🏺</span>';">`;
-                } else {
-                    targetArea.innerHTML = `<span class="shake-anim" style="display:inline-block; font-size:4rem; max-width:100%; pointer-events:none; word-break:break-all; overflow-wrap:anywhere;">${qt.active}</span>`;
-                }
+                targetArea.innerHTML = window.renderCylinderVisualHTML({ isShaking: true, isMini: true });
             }
         }
-        return; 
+        return;
     }
 
     if (window.isMiniShaking) return;
     window.isMiniShaking = true;
-    
-    // 🌟 搖晃時：顯示波浪動畫
+
+    // 🌟 搖晃時：顯示波浪動畫與竹籤晃動
     if (instr) instr.innerHTML = `<div style="font-size:1.3rem; margin-bottom:5px; font-weight:bold;">第 ${window.getWaveHtml()} 籤</div><span style="animation: splashBreathe 1.5s infinite; font-size:0.9rem; color:#aaa;">✨ 撥動籤支...${animSec} 秒後抽籤</span>`;
-    
+
     if (targetArea) {
-        const qt = typeof getCurrentQtImages === 'function' ? getCurrentQtImages() : { active: '🏺' };
-        if (isImageUrl(qt.active)) {
-            targetArea.innerHTML = `<img src="${qt.active}" class="shake-anim" style="height:100px; max-width:100%; object-fit:contain; pointer-events:none;" onerror="this.onerror=null; this.outerHTML='<span style=\\'font-size:4rem; pointer-events:none;\\'>🏺</span>';">`;
-        } else {
-            targetArea.innerHTML = `<span class="shake-anim" style="display:inline-block; font-size:4rem; max-width:100%; pointer-events:none; word-break:break-all; overflow-wrap:anywhere;">${qt.active}</span>`;
-        }
+        targetArea.innerHTML = window.renderCylinderVisualHTML({ isShaking: true, isMini: true });
     }
-    
+
     setTimeout(() => {
         if (!window.isMiniShaking) return;
         window.isMiniShaking = false;
-        
+
         stopShakingUI(); // 👉 秒數到，瞬間停止搖晃
 
         if (typeof window.executeMiniDrawResult === 'function') {

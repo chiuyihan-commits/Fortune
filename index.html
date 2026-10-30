@@ -29,7 +29,7 @@
         </div>
 
         <div id="splash-text-content"
-            style="position:absolute; top:0; left:0; width:100%; height:100%; display:none; flex-direction:column; justify-content:center; align-items:center; transition: all 0.8s ease;">
+            style="position:absolute; top:0; left:0; width:100%; height:100%; display:flex; flex-direction:column; justify-content:center; align-items:center; transition: all 0.8s ease; z-index: 20;">
             <div class="splash-breathe"
                 style="font-size: 6rem; margin-bottom: 20px; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.5));">🏮</div>
             <div id="splash-dynamic-text" class="splash-breathe"
@@ -41,7 +41,19 @@
     <header>
         <div style="width: 60px;"></div>
         <h1 id="header-title">擲筊求籤</h1>
-        <button id="back-btn" onclick="goBack()">💾 & ↩</button>
+        <!-- 🌟 新增這層 div 把右上角的按鈕包起來 -->
+        <div style="margin-left: auto; display: flex; gap: 8px; z-index: 101; align-items: center;">
+            
+            <!-- 🌟 新增：垃圾桶按鈕 (預設隱藏，外觀與返回鍵同風格) -->
+            <button id="trash-btn" onclick="goTo('trash')" title="垃圾桶" 
+                style="display:none; background:rgba(0, 0, 0, 0.2); border:1px solid rgba(255, 255, 255, 0.3); color:white; font-size:0.9rem; cursor:pointer; padding:4px 10px; border-radius:20px;">
+                🗑️
+            </button>
+            
+            <!-- 原本的返回按鈕 (為了避免跑版，覆寫原本 CSS 的 margin-left) -->
+            <button id="back-btn" onclick="goBack()" style="margin-left: 0;">💾 & ↩</button>
+            
+        </div>
     </header>
     <main>
         <div id="page-home" class="page active">
@@ -301,8 +313,17 @@
                         style="display:none; color:#ffeb3b; text-align:center; margin-bottom:2px;">
                         請向神明詳細說明，稍後再請示。</p>
 
-                    <button class="action-btn" id="btn-perm" onclick="askPermission()" style="width:100%; margin:0;">🙏
-                        擲筊請示</button>
+                    <!-- 🌟 修改這裡：將計數器融入按鈕中，並套用深色質感風格 -->
+                    <div id="perm-action-group" style="display:flex; gap:10px; width:100%;">
+                        <!-- 左側：手動已得聖筊 (沉穩深灰色) -->
+                        <button type="button" class="action-btn" id="btn-perm-manual" onclick="window.manualPermClick()"
+                            style="flex:1; margin:0; padding:12px 0; background:#333; color:var(--accent); border:1px solid #555;">💮
+                            已得聖筊 (0/3)</button>
+
+                        <!-- 右側：APP 虛擬擲筊 (維持原本的主題色) -->
+                        <button class="action-btn" id="btn-perm" onclick="window.askPermission()"
+                            style="flex:1; margin:0; padding:12px 0;">🙏 擲筊請示</button>
+                    </div>
                 </div>
             </div>
 
@@ -473,8 +494,13 @@
             <div id="poem-list-container"></div>
         </div>
         <div id="page-collection-view" class="page">
-            <div id="collection-view-container" style="padding-top: 20px;"></div> <button class="secondary-btn"
-                onclick="editCurrentPoem()">🖊️ 編輯此籤</button>
+            <div id="collection-view-container" style="padding-top: 20px;"></div>
+            <div style="display:flex; gap:10px; margin-top:10px;">
+                <button class="action-btn" onclick="window.copyPoemText('collection')"
+                    style="margin:0; flex:1; background:rgba(255, 179, 0, 0.15); color:var(--accent); border:1px solid var(--accent); padding:10px; font-size:0.95rem;">📋 複製籤詩文字</button>
+                <button class="secondary-btn" onclick="editCurrentPoem()"
+                    style="margin:0; flex:1;">🖊️ 編輯此籤</button>
+            </div>
         </div>
         <div id="page-edit-single-poem" class="page">
             <h3>編輯籤詩</h3>
@@ -573,23 +599,36 @@
             <!-- 工具列：包含搜尋、篩選與新增按鈕 -->
             <div style="display:flex; gap:8px; margin-bottom:15px; align-items:center;">
 
-                <input type="text" id="search-keyword" placeholder="搜尋主旨或備註..." oninput="renderRecords()"
-                    style="margin:0; flex:2; border-radius:20px; padding-left:15px; font-size:0.9rem;">
+                <input type="text" id="search-keyword" placeholder="搜尋日期、神明、主旨或備註..." oninput="window.renderRecords()"
+                    style="margin:0; flex:2; border-radius:20px; padding-left:15px; font-size:0.5rem;">
 
                 <select id="search-filter" onchange="renderRecords()"
                     style="margin:0; flex:1.2; border-radius:20px; padding:8px 5px; font-size:0.85rem;">
+                    <!-- 選單選項省略保留原樣 -->
                     <option value="all">全部類型</option>
                     <option value="poem">神明求籤</option>
                     <option value="simple">問事對話</option>
                     <option value="compare">比較選項</option>
                 </select>
 
-                <!-- 新增按鈕：黃底白字，圓角與其他元件統一 -->
                 <button onclick="openManualAdd()"
                     style="margin:0; flex:0.8; background:#ffb300; color:#fff; border:none; border-radius:20px; padding:8px 0; font-weight:bold; font-size:0.9rem; cursor:pointer; box-shadow:0 2px 4px rgba(0,0,0,0.2);">新增</button>
-
             </div>
             <div id="records-container"></div>
+        </div>
+
+        <!-- 🌟 新增：垃圾桶頁面 -->
+        <div id="page-trash" class="page">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <h3 style="margin:0; color:#888;"></h3>
+                <button onclick="window.emptyTrash()"
+                    style="background:transparent; border:1px solid #f44336; color:#f44336; border-radius:20px; padding:4px 12px; font-size:0.85rem; cursor:pointer;">清空垃圾桶</button>
+            </div>
+            <div id="trash-container"></div>
+        </div>
+
+        </div>
+        <div id="records-container"></div>
         </div>
         <div id="page-record-detail" class="page">
             <input type="hidden" id="detail-id">
@@ -606,6 +645,9 @@
 
             <div id="btn-share-poem" style="display:none; margin-bottom: 8px;">
                 <div style="display:flex; justify-content:flex-end; gap:8px;">
+                    <button onclick="window.copyPoemText('record')"
+                        style="background:rgba(255, 179, 0, 0.15); color:#ffb300; border:1px solid #ffb300; border-radius:20px; padding:6px 14px; font-size:0.85rem; cursor:pointer; font-weight:bold;">📋
+                        複製</button>
                     <button onclick="window.shareResultRecord(this, 'detail-res-container')"
                         style="background:rgba(76, 175, 80, 0.15); color:#4CAF50; border:1px solid #4CAF50; border-radius:20px; padding:6px 14px; font-size:0.85rem; cursor:pointer; font-weight:bold;">📤
                         分享</button>
@@ -1332,14 +1374,24 @@ function doGet(e) {
                 <!-- [神明求籤/問事/比較 共用的選神明區塊] -->
                 <div id="manual-deity-area"
                     style="display:none; text-align:center; background:#222; padding:10px; border-radius:8px; margin-bottom:10px; border:1px dashed var(--accent);">
-                    <label style="font-size:0.85rem; color:#aaa; margin-bottom:5px; display:block;">歸屬神明
-                        (選填)</label>
+                    <label style="font-size:0.85rem; color:#aaa; margin-bottom:5px; display:block;">歸屬神明 (選填)</label>
                     <input type="hidden" id="manual-selected-deity-id">
                     <button type="button" class="action-btn" onclick="window.openDeityModal('manual')"
                         style="background:#222; border:1px solid #555; color:var(--text); display:flex; align-items:center; justify-content:center; gap:10px; width:100%; margin:0; padding:8px;">
                         <span id="btn-manual-icon" style="font-size:1.2rem; display:flex; align-items:center;">⛩️</span>
                         <span id="btn-manual-name" style="font-size:1rem; font-weight:bold;">點擊選擇神明</span>
                     </button>
+
+                    <!-- 🌟 新增這裡：手動求籤的 Checkbox -->
+                    <div id="manual-deity-source-checkbox"
+                        style="display:none; margin-top:12px; text-align:left; background:#111; padding:8px 10px; border-radius:6px; border:1px solid #333;">
+                        <label
+                            style="color:#ddd; font-size:0.9rem; display:flex; align-items:center; cursor:pointer; margin:0;">
+                            <input type="checkbox" id="manual-is-manual-chk" checked
+                                style="width:18px; height:18px; margin-right:8px;">
+                            標示為「手動求籤」紀錄
+                        </label>
+                    </div>
                 </div>
 
                 <!-- [求籤共用：籤號與主旨] -->
@@ -1747,6 +1799,22 @@ function doGet(e) {
                     style="text-align:center; font-weight:bold; width: 100%; padding: 8px; box-sizing: border-box;">
             </div>
 
+            <div class="form-group" style="margin-top: 10px;">
+                <label style="color:var(--accent);">紀錄日期與時間</label>
+                <input type="datetime-local" id="edit-rec-date"
+                    style="width: 100%; padding: 8px; box-sizing: border-box; background: #111; color: #fff; border: 1px solid #555; border-radius: 6px;">
+            </div>
+
+            <div id="edit-rec-source-checkbox"
+                style="display:none; margin-bottom:15px; background:#111; padding:8px 10px; border-radius:6px; border:1px solid #333;">
+                <label
+                    style="color:#ddd; font-size:0.9rem; display:flex; align-items:center; cursor:pointer; margin:0;">
+                    <input type="checkbox" id="edit-rec-is-manual-chk"
+                        style="width:18px; height:18px; margin-right:8px;">
+                    標示為「手動求籤」紀錄
+                </label>
+            </div>
+
             <button type="button" class="action-btn" onclick="window.saveRecordHeaderEdit()"
                 style="margin-top:15px; width: 100%;">💾 儲存修改</button>
         </div>
@@ -1931,15 +1999,20 @@ function doGet(e) {
             setTimeout(setAppHeight, 100);
         });
 
-        // 👇 1. 這裡加上 async
         window.addEventListener('load', async function () {
             console.log("網頁資源載入完畢，準備強制啟動 APP...");
 
             // 🌟 啟動前先套用使用者的自訂廟門
             if (typeof applyCustomDoors === 'function') {
-                // 👇 2. 這裡加上 await，強迫系統「死死等著門畫完」！
+                // 👇 這裡會強迫系統「死死等著門畫完」！
                 await applyCustomDoors();
             }
+
+            // 🌟 關鍵新增：門畫好準備出現了，讓廟門浮現，並讓燈籠淡出！
+            const doorsContainer = document.getElementById('temple-doors-container');
+            const textContent = document.getElementById('splash-text-content');
+            if (doorsContainer) doorsContainer.style.opacity = '1'; // 廟門浮現 (搭配 CSS 的 0.3s 漸變)
+            if (textContent) textContent.style.opacity = '0';       // 燈籠淡出 (搭配 CSS 的 0.8s 漸變)
 
             // 系統一定會等上面的門 100% 上色完畢，才會走到這裡啟動 App
             if (typeof initApp === 'function') {

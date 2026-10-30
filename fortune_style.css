@@ -2494,7 +2494,7 @@ img:not([src]) {
     width: 50%;
     height: 100%;
     /* 經典廟門朱紅色漸層，帶有立體厚重感 */
-    background: linear-gradient(135deg, #a71d2a 0%, #7b101d 100%); 
+    /*background: linear-gradient(135deg, #a71d2a 0%, #7b101d 100%); */
     position: absolute;
     top: 0;
     /* 緩入緩出的厚重推門感 (Cubic-bezier 讓開門瞬間有點重量) */
@@ -2505,6 +2505,22 @@ img:not([src]) {
     border: 2px solid #5a0a14;
     box-sizing: border-box;
     pointer-events: auto; /* 擋住後方點擊 */
+}
+
+/* 左門：漸層從左上到右下 */
+.temple-door.left {
+    left: 0;
+    transform-origin: left;
+    justify-content: flex-end;
+    background: linear-gradient(135deg, #a71d2a 0%, #7b101d 100%); /* 加在這裡 */
+}
+
+/* 右門：漸層從右上到左下 (對稱) */
+.temple-door.right {
+    right: 0;
+    transform-origin: right;
+    justify-content: flex-start;
+    background: linear-gradient(-135deg, #a71d2a 0%, #7b101d 100%); /* 加在這裡，注意角度是 -135deg */
 }
 
 /* 門框金線裝飾 */
@@ -2576,7 +2592,7 @@ img:not([src]) {
     width: 50%;
     height: 100%;
     /* 預設的朱紅色漸層 */
-    background-image: linear-gradient(135deg, #a71d2a 0%, #7b101d 100%);
+    /*background-image: linear-gradient(135deg, #a71d2a 0%, #7b101d 100%);*/
     position: absolute;
     top: 0;
     transition: transform 1.5s cubic-bezier(0.5, 0.05, 0.1, 1); 
@@ -2586,6 +2602,20 @@ img:not([src]) {
     border: 2px solid #5a0a14;
     box-sizing: border-box;
     pointer-events: auto; /* 擋住後方點擊 */
+}
+
+.temple-door.left {
+    left: 0;
+    transform-origin: left;
+    justify-content: flex-end; 
+    background-image: linear-gradient(135deg, #a71d2a 0%, #7b101d 100%); /* 加在這裡 */
+}
+
+.temple-door.right {
+    right: 0;
+    transform-origin: right;
+    justify-content: flex-start; 
+    background-image: linear-gradient(-135deg, #a71d2a 0%, #7b101d 100%); /* 加在這裡，注意是 -135deg */
 }
 
 /* 門框金線裝飾 (永遠顯示) */
@@ -2666,4 +2696,456 @@ img:not([src]) {
 #app-splash-screen.doors-opening {
     background-color: transparent !important;
     pointer-events: none; /* 開門時立刻放行點擊 */
+}
+
+/* =================================================================
+   🌟 11. 擬真 CSS 擲筊掉落攤開 & 動態搖籤筒視覺系統
+================================================================= */
+
+/* 微調情境 A 大顯示框的高度，讓掉落攤開的筊杯有更舒適的展示空間 */
+.cup-display {
+    min-height: 58px !important;
+    height: 58px !important;
+    padding: 4px 12px !important;
+}
+.unified-block-cup,
+#page-qiuqian #step-3 .unified-block-cup {
+    height: clamp(56px, 9svh, 68px) !important;
+    min-height: 56px !important;
+}
+
+/* --- A. 擲筊掉落攤開舞台 --- */
+.cup-drop-stage {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    width: 100%;
+    height: 100%;
+}
+
+/* 兩塊筊杯的落點沙盒 (固定 95x50，左右分區保證絕不交疊) */
+.bobei-arena {
+    position: relative;
+    width: 96px;
+    height: 50px;
+    flex-shrink: 0;
+}
+
+/* 擬真月牙形筊杯本體 */
+.bobei-piece {
+    position: absolute;
+    width: 34px;
+    height: 17px;
+    border-radius: 20px 20px 4px 4px;
+    transform-origin: center center;
+    /* 先執行 0.55 秒的空中翻滾掉落動畫，最後停留在隨機算出的座標與角度 */
+    animation: bobeiDropIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* 陰面向上 (凸面：深朱紅立體圓潤弧面) */
+.bobei-yin {
+    background: radial-gradient(ellipse at 50% 35%, #ff5252 0%, #d32f2f 55%, #7f0000 100%);
+    box-shadow: 2px 4px 6px rgba(0, 0, 0, 0.65), inset 0 2px 3px rgba(255, 255, 255, 0.35);
+    border: 1px solid #5a0000;
+}
+
+/* 陽面向上 (平面：淺木紋肉色 + 紅漆邊框) */
+.bobei-yang {
+    background: linear-gradient(180deg, #f3e5ab 0%, #dfb878 100%);
+    border: 2px solid #b71c1c;
+    box-shadow: 2px 3px 5px rgba(0, 0, 0, 0.6), inset 0 1px 4px rgba(139, 69, 19, 0.35);
+    box-sizing: border-box;
+}
+/* 陽面內部的木紋微線條 */
+.bobei-yang::after {
+    content: '';
+    position: absolute;
+    top: 35%;
+    left: 18%;
+    right: 18%;
+    height: 1px;
+    background: rgba(139, 69, 19, 0.25);
+    border-radius: 50%;
+}
+
+@keyframes bobeiDropIn {
+    0% {
+        opacity: 0;
+        transform: translate(var(--tx, 0px), -35px) scale(1.65) rotate(calc(var(--rot, 0deg) - 200deg));
+    }
+    55% {
+        opacity: 1;
+        transform: translate(var(--tx, 0px), calc(var(--ty, 0px) + 3px)) scale(0.92) rotate(calc(var(--rot, 0deg) + 18deg));
+    }
+    80% {
+        transform: translate(var(--tx, 0px), calc(var(--ty, 0px) - 2px)) scale(1.04) rotate(calc(var(--rot, 0deg) - 6deg));
+    }
+    100% {
+        opacity: 1;
+        transform: translate(var(--tx, 0px), var(--ty, 0px)) scale(1) rotate(var(--rot, 0deg));
+    }
+}
+
+/* 右側結果標示：延遲 0.52 秒（等筊杯攤開定格後）才彈出 */
+.cup-badge-delayed {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    opacity: 0;
+    animation: badgeRevealAfterCup 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) 0.52s forwards;
+}
+
+@keyframes badgeRevealAfterCup {
+    0% {
+        opacity: 0;
+        transform: translateX(-8px) scale(0.8);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+}
+
+/* --- B. CSS 擬真籤筒與動態竹籤群 --- */
+.css-cylinder-scene {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    height: 100%;
+    position: relative;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.css-qiantong-box {
+    position: relative;
+    width: 68px;
+    height: 98px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    transform-origin: center bottom;
+}
+
+/* 籤筒內的竹籤群容器 */
+.qt-sticks-bundle {
+    position: absolute;
+    bottom: 40px;
+    width: 54px;
+    height: 55px;
+    z-index: 1;
+    pointer-events: none;
+}
+
+/* 單支筒內竹籤 (帶紅頭) */
+.qt-stick-item {
+    position: absolute;
+    bottom: 0;
+    width: 4px;
+    height: 46px;
+    background: linear-gradient(90deg, #d7b377, #f5deb3 50%, #bfa065);
+    border-radius: 2px 2px 0 0;
+    border-top: 7px solid #d32f2f;
+    box-shadow: -1px 0 2px rgba(0, 0, 0, 0.45);
+    transform-origin: bottom center;
+    transform: translateX(var(--sx, 0px)) translateY(var(--sy, 0px)) rotate(var(--srot, 0deg));
+}
+
+/* 籤筒搖晃時：筒身搖擺 + 每支竹籤各自上下跳動洗牌 */
+.css-qiantong-box.is-shaking {
+    animation: shake 0.42s cubic-bezier(.36, .07, .19, .97) infinite both;
+}
+.css-qiantong-box.is-shaking .qt-stick-item {
+    animation: stickJiggle 0.22s ease-in-out infinite alternate;
+    animation-delay: var(--sdelay, 0s);
+}
+
+@keyframes stickJiggle {
+    0% {
+        transform: translateX(var(--sx, 0px)) translateY(var(--sy, 0px)) rotate(calc(var(--srot, 0deg) - 5deg));
+    }
+    100% {
+        transform: translateX(var(--sx, 0px)) translateY(calc(var(--sy, 0px) - 13px)) rotate(calc(var(--srot, 0deg) + 6deg));
+    }
+}
+
+/* 籤筒木製筒身 (前層遮罩) */
+.qt-body-front {
+    position: relative;
+    z-index: 2;
+    width: 64px;
+    height: 60px;
+    background: linear-gradient(90deg, #4e2714 0%, #8d4a28 32%, #a65d37 50%, #6d361b 82%, #3a1b0c 100%);
+    border-radius: 4px 4px 10px 10px;
+    border-top: 3px solid #2a1207;
+    border-bottom: 4px solid #1f0d05;
+    box-shadow: 0 5px 12px rgba(0, 0, 0, 0.65), inset 0 5px 8px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+/* 籤筒上下金色箍環 */
+.qt-body-front::before,
+.qt-body-front::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #8c6214, #ffd54f 50%, #8c6214);
+    opacity: 0.85;
+}
+.qt-body-front::before { top: 7px; }
+.qt-body-front::after { bottom: 7px; }
+
+/* 籤筒中間的「靈籤」紅底金字牌與總數標籤 */
+.qt-label-plate {
+    background: #b71c1c;
+    color: #ffeb3b;
+    border: 1px solid #ffd54f;
+    font-size: 0.72rem;
+    font-weight: bold;
+    padding: 2px 5px;
+    border-radius: 3px;
+    letter-spacing: 1px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+.qt-total-badge {
+    font-size: 0.6rem;
+    color: #f5deb3;
+    margin-top: 2px;
+    opacity: 0.9;
+    font-weight: bold;
+}
+
+/* --- C. 抽出籤號時：左邊出現的單支籤支 (傳統中文單行直書版) --- */
+.drawn-single-stick {
+    width: 24px;
+    height: 102px;
+    background: linear-gradient(90deg, #dfc18b 0%, #fdf0d5 50%, #cda869 100%);
+    border-radius: 5px 5px 3px 3px;
+    border: 1px solid #9c7a44;
+    border-top: 14px solid #d32f2f; /* 傳統紅頭竹籤 */
+    box-shadow: 3px 6px 12px rgba(0, 0, 0, 0.65);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3px 0;
+    box-sizing: border-box;
+    animation: drawnStickEject 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    flex-shrink: 0;
+}
+
+.drawn-single-stick span {
+    writing-mode: vertical-rl;
+    text-orientation: upright;
+    white-space: nowrap; /* ★ 核心：強制一列直書到底，絕對不換行！ */
+    color: #8b0000;
+    font-family: "LXGW WenKai TC", "BiauKai", "DFKai-SB", "KaiTi", serif;
+    font-weight: 900;
+    font-size: 0.72rem;
+    letter-spacing: 1px;
+    line-height: 1;
+    display: block;
+}
+
+@keyframes drawnStickEject {
+    0% {
+        opacity: 0;
+        transform: translate(35px, 25px) rotate(20deg) scale(0.5);
+    }
+    65% {
+        opacity: 1;
+        transform: translate(-4px, -6px) rotate(-8deg) scale(1.06);
+    }
+    100% {
+        opacity: 1;
+        transform: translate(0, 0) rotate(-4deg) scale(1);
+    }
+}
+
+/* =================================================================
+   🌟 12. 三聖筊確認後：30度俯視拉開籤詩櫃木抽屜與籤紙動畫
+================================================================= */
+
+/* 當抽屜出現時，自動解鎖 Step 3 提示區的高度限制，讓抽屜完整呈現 */
+#step-3 .unified-block-hint.drawer-active {
+    height: auto !important;
+    min-height: 92px !important;
+    margin: 4px 0 8px 0 !important;
+    overflow: visible !important;
+}
+
+/* 3D 俯視舞台 (設定 perspective 創造近大遠小的立體感) */
+.poem-cabinet-stage {
+    perspective: 550px;
+    width: 170px;
+    height: 86px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    padding-top: 4px;
+    user-select: none;
+    pointer-events: none;
+}
+
+/* 籤詩櫃單格木框底座 (固定俯視 30 度角) */
+.cabinet-slot-frame {
+    position: relative;
+    width: 126px;
+    height: 54px;
+    background: #1a0b05; /* 櫃體深處暗影 */
+    border: 4px solid #5c2c16;
+    border-top: 6px solid #3e1b0b;
+    border-radius: 4px;
+    transform: rotateX(30deg);
+    transform-style: preserve-3d;
+    box-shadow: 0 12px 20px rgba(0, 0, 0, 0.7), inset 0 6px 12px rgba(0, 0, 0, 0.9);
+}
+
+/* 滑出的木抽屜盒體 */
+.cabinet-drawer-box {
+    position: absolute;
+    top: 0;
+    left: 2px;
+    right: 2px;
+    height: 50px;
+    background: #2b1207; /* 抽屜內部底色 */
+    border-left: 4px solid #8d4a28;
+    border-right: 4px solid #8d4a28;
+    border-bottom: 4px solid #6d361b;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    box-shadow: 0 10px 16px rgba(0, 0, 0, 0.75), inset 0 4px 10px rgba(0, 0, 0, 0.85);
+    /* 0.25秒後開始向外拉開抽屜 */
+    animation: pullOutPoemDrawer 0.85s cubic-bezier(0.22, 1, 0.36, 1) 0.25s forwards;
+    transform: translateY(0px);
+}
+
+/* 抽屜內的籤詩小紙片 (帶傳統紅框與金光) */
+.drawer-slip-paper {
+    width: 72px;
+    height: 36px;
+    background: #fcf9f2; /* 傳統米黃色籤紙 / 若想改粉紅籤紙可換成 #f8bccc */
+    border: 1px solid #d7ccc8;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.6), 0 0 12px rgba(255, 179, 0, 0.35);
+    padding: 3px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
+    transform: rotate(-2deg) scale(0.92);
+    opacity: 0.3;
+    /* 隨著抽屜拉開，籤紙微微浮起發亮 */
+    animation: slipPaperGlow 0.6s ease-out 0.65s forwards;
+}
+
+/* 籤紙內部的紅色雙線框與模擬字跡 */
+.drawer-slip-inner {
+    width: 100%;
+    height: 100%;
+    border: 1.5px solid #b71c1c;
+    display: flex;
+    align-items: center;
+    justify-content: space-evenly;
+    padding: 2px 4px;
+    box-sizing: border-box;
+}
+
+.drawer-slip-title {
+    font-size: 0.62rem;
+    font-weight: 900;
+    color: #b71c1c;
+    font-family: "LXGW WenKai TC", "BiauKai", serif;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+/* 模擬籤紙上的直排詩句小紅線 */
+.drawer-slip-lines {
+    display: flex;
+    gap: 3px;
+    height: 75%;
+    align-items: center;
+}
+.drawer-slip-lines i {
+    display: block;
+    width: 1.5px;
+    height: 100%;
+    background: rgba(183, 28, 28, 0.55);
+    border-radius: 1px;
+}
+
+/* 抽屜正前方的木面板與金色號碼牌、銅拉環 */
+.drawer-front-panel {
+    position: absolute;
+    bottom: -14px;
+    left: -5px;
+    right: -5px;
+    height: 16px;
+    background: linear-gradient(90deg, #5a2b15 0%, #9c522d 50%, #5a2b15 100%);
+    border: 1px solid #3a1809;
+    border-top: 2px solid #b86b43;
+    border-radius: 2px;
+    box-shadow: 0 5px 10px rgba(0, 0, 0, 0.65);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* 抽屜面上的金屬號碼小銘牌 */
+.drawer-front-badge {
+    background: linear-gradient(180deg, #ffe082, #ffb300);
+    color: #3e1b0b;
+    font-size: 0.55rem;
+    font-weight: 900;
+    padding: 0px 6px;
+    border-radius: 2px;
+    border: 1px solid #795548;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+    line-height: 1.2;
+}
+
+/* 古銅色小拉環 */
+.drawer-pull-ring {
+    position: absolute;
+    bottom: -5px;
+    width: 12px;
+    height: 6px;
+    border: 2px solid #ffb300;
+    border-top: none;
+    border-radius: 0 0 8px 8px;
+    box-shadow: 0 2px 3px rgba(0, 0, 0, 0.6);
+}
+
+@keyframes pullOutPoemDrawer {
+    0% {
+        transform: translateY(0px);
+    }
+    70% {
+        transform: translateY(28px);
+    }
+    100% {
+        transform: translateY(25px);
+    }
+}
+
+@keyframes slipPaperGlow {
+    0% {
+        opacity: 0.4;
+        transform: rotate(-2deg) scale(0.92);
+    }
+    100% {
+        opacity: 1;
+        transform: rotate(-3deg) scale(1);
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.7), 0 0 16px rgba(255, 213, 79, 0.65);
+    }
 }

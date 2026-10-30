@@ -76,7 +76,7 @@ lotsKongming_32.forEach(poem => {
 // ==========================================
 // ★ 啟示玄機院孔明神卦 - 專屬版面
 // ==========================================
-window.customPoemTemplates['kongming_shenji'] = function (poem, cleanLotNum, templeName, customData) {
+window.customPoemTemplates['kongming_shenji'] = function (poem, cleanLotNum, templeName, deity, customData) {
     if (!poem) {
         return `<div class="fortune-slip" style="padding:30px; text-align:center; color:#888;">第 ${cleanLotNum} 籤資料建置中...</div>`;
     }

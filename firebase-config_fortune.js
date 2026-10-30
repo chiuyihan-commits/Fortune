@@ -2,7 +2,10 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getFirestore, collection, doc, setDoc, deleteDoc, getDoc, query, orderBy, onSnapshot, serverTimestamp, writeBatch, initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
-import { firebaseConfig } from "./privatekey.js";
+
+// ⚠️ 注意：請確認下方這支金鑰檔案的名稱與你資料夾中的完全一致
+// (你之前有時命名為 krane_div_privatekey.js，有時是 div_sys_krane_private.js)
+import { firebaseConfig } from "./krane_private_fortune.js";
 window.hasBuiltInKey = (typeof firebaseConfig !== 'undefined' && Object.keys(firebaseConfig).length > 0);
 let app;
 let db;

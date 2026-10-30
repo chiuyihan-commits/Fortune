@@ -11,10 +11,10 @@ if (!window.poemSystems['Leiyushi_100']) {
     // 1. 【繼承魔法】深拷貝雷雨師資料
     const yucingContent = JSON.parse(JSON.stringify(window.poemSystems['Leiyushi_100'].content));
 
-    // 2. 【擴充籤王】加入 0 號籤 (籤王)
+    // ★ 修正：將 level 設為空字串 ""，右邊就不會出現多餘的紅框與區塊
     yucingContent[0] = {
         lot: 0,
-        level: "籤王",
+        level: "",
         l1: "求得籤王百事良", l2: "萬事如意大吉昌", l3: "宜加力作行方便", l4: "可保福壽永安康",
         meaning: "百事皆吉、求財得利、病得安康。",
         english: "This divination tells of the greatest possible good fortune, shining most auspiciously on every aspect of your life, provided only that you hold sincerely true to your faith."
@@ -136,16 +136,27 @@ if (!window.poemSystems['Leiyushi_100']) {
     };
 
     window.customPoemTemplates['yucing'] = function (poem, cleanLotNum, templeName, deity, customData) {
+        // 若是籤王 (0號)，先確保複製一份不含 level 的資料傳給雷雨師版型，避免畫出右邊紅框
+        let renderPoem = poem;
+        if (Number(cleanLotNum) === 0 && poem) {
+            renderPoem = Object.assign({}, poem, { level: "" });
+        }
+
         // 1. 先呼叫雷雨師把主體畫出來
-        let baseHtml = window.customPoemTemplates['leiyushi'](poem, cleanLotNum, templeName, deity, customData);
+        let baseHtml = window.customPoemTemplates['leiyushi'](renderPoem, cleanLotNum, templeName, deity, customData);
+
+        // ★ 修正：如果是第 0 籤 (籤王)，將上方的「第0籤 / 第〇籤 / 第 0 籤」全部替換為「籤 王」，並移除多餘的空紅框標籤
+        if (Number(cleanLotNum) === 0) {
+            baseHtml = baseHtml.replace(/第\s*[0〇零]\s*[籤首]/g, '籤 王');
+            // 若雷雨師版型有固定渲染空紅框，一併將空框隱藏
+            baseHtml = baseHtml.replace(/<div[^>]*class=["'][^"']*level[^"']*["'][^>]*>\s*<\/div>/gi, '');
+        }
 
         // 2. 如果有英文，就進行高度解鎖並塞入英文區塊
         if (poem && poem.english) {
 
             // ★ 解開雷雨師的比例與高度封印
-            // 拔掉 aspect-ratio 比例限制
             baseHtml = baseHtml.replace(/aspect-ratio:\s*100\s*\/\s*235\s*!important;?/, 'height: auto !important;');
-            // 把內層框線的 height: 100% 換成 auto，讓紅框能往下長
             baseHtml = baseHtml.replace(/height:\s*100%;/g, 'height: auto; min-height: 100%;');
 
             // 英文區塊設計 (帶有上方紅線區隔)
@@ -168,7 +179,7 @@ if (!window.poemSystems['Leiyushi_100']) {
         name: '玉清宮關聖帝君',
         iconType: 'emoji',
         iconVal: '🧔',
-        builtInImg: '', // 🌟 內建圖片路徑
+        builtInImg: './deitypoem/Yucing_Holy_Emperor_Guan.jpg', // 🌟 內建圖片路徑
         cloudImgUrl:'', // 👈 Firebase 給的網址
         temple: '玉清宮',
         sysId: 'Yucing_101'

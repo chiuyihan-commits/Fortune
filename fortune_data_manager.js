@@ -829,6 +829,21 @@ window.openEditRecordModal = function (id) {
 
     document.getElementById('edit-rec-id').value = r.id;
 
+    const dateInput = document.getElementById('edit-rec-date');
+    if (dateInput) {
+        // 嘗試解析紀錄中的日期字串
+        let dObj = new Date(r.date);
+        // 如果遇到舊資料日期格式無法解析，退回使用 r.id (建立當下的時間戳記)
+        if (isNaN(dObj.getTime())) {
+            dObj = new Date(r.id);
+        }
+        
+        // 考量到時區偏移，轉換成正確的本地時間字串
+        const tzOffset = dObj.getTimezoneOffset() * 60000;
+        const localISOTime = new Date(dObj.getTime() - tzOffset).toISOString().slice(0, 16);
+        dateInput.value = localISOTime;
+    }
+
     // 🌟 核心修復：先檢查畫面上到底有沒有這個元素，有才填入，沒有就跳過，絕對不報錯！
     const lotInput = document.getElementById('edit-rec-lot');
     if (lotInput) {
@@ -875,17 +890,36 @@ window.openEditRecordModal = function (id) {
     if (systemPlaceholders.includes(parsedDeityName)) {
         parsedDeityName = 'none';
     }
-
+    
     // 4. 套用到畫面上
     catSel.value = parsedCategory;
 
     // 🛡️ 高階防呆：如果這筆紀錄的神明，後來被使用者從設定裡刪除了怎麼辦？
     let deityExists = Array.from(deitySel.options).some(opt => opt.value === parsedDeityName);
     if (parsedDeityName !== 'none' && !deityExists) {
-        // 動態補上這個幽靈選項，讓使用者知道原本是綁定誰
         deitySel.innerHTML += `<option value="${parsedDeityName}">${parsedDeityName} (已刪除)</option>`;
     }
     deitySel.value = parsedDeityName;
+
+    // 🌟 新增這裡：控制 Checkbox 顯示與打勾狀態
+    const sourceChkContainer = document.getElementById('edit-rec-source-checkbox');
+    const isManualChk = document.getElementById('edit-rec-is-manual-chk');
+    
+    if (sourceChkContainer && isManualChk) {
+        // 只有「神明求籤」才顯示這個 Checkbox
+        if (parsedCategory === '神明') {
+            sourceChkContainer.style.display = 'block';
+            // 根據紀錄的 source 屬性決定是否打勾
+            isManualChk.checked = (r.source === 'manual');
+        } else {
+            sourceChkContainer.style.display = 'none';
+        }
+
+        // 加入連動：如果使用者在修改時切換了紀錄類型，動態隱藏/顯示 Checkbox
+        catSel.onchange = function() {
+            sourceChkContainer.style.display = (this.value === '神明') ? 'block' : 'none';
+        };
+    }
 
     document.getElementById('record-edit-modal').style.display = 'flex';
 };
@@ -913,6 +947,14 @@ window.saveRecordHeaderEdit = function () {
     const lotEl = document.getElementById('edit-rec-lot');
     const newLot = (lotEl ? lotEl.value.trim() : '') || '-';
 
+    // 🌟 新增這裡：抓取修改後的新日期，並同時寫入皮 (date) 與 骨 (timestamp)
+    const dateEl = document.getElementById('edit-rec-date');
+    if (dateEl && dateEl.value) {
+        const newTime = new Date(dateEl.value).getTime();
+        r.timestamp = newTime; // 👈 真正的骨子：純數字時間戳記
+        r.date = new Date(newTime).toLocaleString(); // 👈 皮：顯示用的字串
+    }
+
     // 重新組合 r.type 字串，確保與系統其他地方的顯示相容
     let finalTypeStr = "";
 
@@ -928,6 +970,17 @@ window.saveRecordHeaderEdit = function () {
 
     r.type = finalTypeStr;
     r.lot = newLot;
+
+    // 🌟 新增這裡：儲存 Source 狀態
+    if (newCategory === '神明') {
+        const isManualChk = document.getElementById('edit-rec-is-manual-chk');
+        if (isManualChk) {
+            r.source = isManualChk.checked ? 'manual' : 'online';
+        }
+    } else {
+        // 如果被改成了其他類別 (如一般求籤)，確保把 source 洗掉或設為預設
+        if (newCategory === '一般') r.source = 'online';
+    }
 
     window.Database.saveRecord(r);
 
@@ -1099,74 +1152,97 @@ window.resetCustomDoors = function() {
     if (typeof showToast === 'function') showToast("🗑️ 已還原預設開場廟門與設定");
 };
 
-// 3. 將圖片動態渲染，並加入「白底去背、邊緣取色與完美預載」終極魔法
+// 3. 將圖片動態渲染，並加入「智慧亮度比對、深色同步與完美預載」終極魔法
 window.applyCustomDoors = async function() {
     const leftDoor = document.querySelector('.temple-door.left');
     const rightDoor = document.querySelector('.temple-door.right');
     const doorsContainer = document.getElementById('temple-doors-container');
     
-    // 🎨 建立「智慧取色與渲染引擎」(改寫為 Promise，回報處理進度)
-    const applyWithSmartColor = (door, imgSrc) => {
+    // 取出圖片的邊緣像素顏色 (Promise)
+    const getDominantPixel = (imgSrc) => {
         return new Promise((resolve) => {
-            if (!door) return resolve(); // 找不到門就直接跳過
-
+            if (!imgSrc) return resolve(null);
             const img = new Image();
-            // 👇 加上這行鐵壁防禦！允許跨網域分析圖片像素，確保取色絕對成功
             img.crossOrigin = "Anonymous";
             img.onload = function() {
                 const cvs = document.createElement('canvas');
                 cvs.width = 10; cvs.height = 10;
                 const ctx = cvs.getContext('2d');
                 ctx.drawImage(img, 0, 0, 10, 10);
-                
-                const p = ctx.getImageData(1, 1, 1, 1).data;
-                
-                let bgLayer = "linear-gradient(135deg, #a71d2a 0%, #7b101d 100%)"; 
-                let blendMode = "normal"; 
-                
-                if (p[3] > 250) { 
-                    if (p[0] > 240 && p[1] > 240 && p[2] > 240) {
-                        bgLayer = "linear-gradient(135deg, #a71d2a 0%, #7b101d 100%)";
-                        blendMode = "multiply"; 
-                    } else {
-                        const bgColor = `rgb(${p[0]}, ${p[1]}, ${p[2]})`;
-                        bgLayer = `linear-gradient(135deg, ${bgColor} 0%, ${bgColor} 100%)`;
-                        blendMode = "normal";
-                    }
-                }
-                
-                door.style.backgroundImage = `url('${imgSrc}'), ${bgLayer}`;
-                door.style.backgroundBlendMode = blendMode; 
-                door.classList.add('has-custom-img');
-                
-                resolve(); // 🌟 報告老闆！這扇門的圖片處理完畢！
+                resolve(ctx.getImageData(1, 1, 1, 1).data);
             };
-            img.onerror = function() {
-                // 圖片破圖時，退回純淨的 CSS 朱紅門
-                door.style.backgroundImage = ''; 
-                door.style.backgroundBlendMode = 'normal';
-                door.classList.remove('has-custom-img'); 
-                
-                resolve(); // 🌟 報告老闆！這扇門沒有圖片，但已準備好紅底！
-            };
+            img.onerror = () => resolve(null);
             img.src = imgSrc;
         });
     };
 
-    // 判斷要用上傳的圖片還是內建的圖片
     const getImgSrc = (side) => {
         const customImg = localStorage.getItem('custom_door_' + side);
         return customImg ? customImg : `./deitypoem/door_god_${side}.jpg`;
     };
 
-    // 🌟 魔法核心：Promise.all (並行處理)
-    // 讓左門跟右門「同時」去載入圖片並分析顏色，等待「兩邊都回報完成」才繼續往下走
-    await Promise.all([
-        applyWithSmartColor(leftDoor, getImgSrc('left')),
-        applyWithSmartColor(rightDoor, getImgSrc('right'))
+    const leftSrc = getImgSrc('left');
+    const rightSrc = getImgSrc('right');
+
+    // 🌟 並行載入兩邊的圖片，並取得它們的顏色
+    const [leftPixel, rightPixel] = await Promise.all([
+        getDominantPixel(leftSrc),
+        getDominantPixel(rightSrc)
     ]);
 
-    // 🌟 當上面兩扇門都 100% 準備好的瞬間，把容器顯示出來！
+    // 🌟 計算亮度 (Brightness)，數值越小代表越暗
+    // 判斷哪一邊的顏色比較深，並將深色指定為目標顏色
+    let targetPixel = null;
+    if (leftPixel && rightPixel) {
+        const calcBrightness = (p) => (p[0] * 299 + p[1] * 587 + p[2] * 114) / 1000;
+        const leftBrightness = calcBrightness(leftPixel);
+        const rightBrightness = calcBrightness(rightPixel);
+        // 挑選亮度較低 (較深) 的那一個顏色
+        targetPixel = leftBrightness < rightBrightness ? leftPixel : rightPixel;
+    } else if (leftPixel) {
+        targetPixel = leftPixel;
+    } else if (rightPixel) {
+        targetPixel = rightPixel;
+    }
+
+    // 🌟 將選出的深色，統一套用到門上 (保有左右鏡像的對稱漸層)
+    const applyBg = (door, imgSrc, p) => {
+        if (!door) return;
+        if (!p || !imgSrc) {
+            door.style.backgroundImage = ''; 
+            door.style.backgroundBlendMode = 'normal';
+            door.classList.remove('has-custom-img'); 
+            return;
+        }
+        
+        let bgLayer = "linear-gradient(135deg, #a71d2a 0%, #7b101d 100%)"; 
+        let blendMode = "normal"; 
+        
+        // 左門漸層向右下，右門漸層向左下 (維持光影對稱)
+        const gradientAngle = door.classList.contains('left') ? "135deg" : "-135deg";
+
+        if (p[3] > 250) { 
+            if (p[0] > 240 && p[1] > 240 && p[2] > 240) {
+                // 如果是白底，套用乘法混合模式與紅底
+                bgLayer = `linear-gradient(${gradientAngle}, #a71d2a 0%, #7b101d 100%)`;
+                blendMode = "multiply"; 
+            } else {
+                // 如果是其他顏色，直接延展該顏色
+                const bgColor = `rgb(${p[0]}, ${p[1]}, ${p[2]})`;
+                bgLayer = `linear-gradient(${gradientAngle}, ${bgColor} 0%, ${bgColor} 100%)`;
+                blendMode = "normal";
+            }
+        }
+        
+        door.style.backgroundImage = `url('${imgSrc}'), ${bgLayer}`;
+        door.style.backgroundBlendMode = blendMode; 
+        door.classList.add('has-custom-img');
+    };
+
+    // 不管左門還是右門，通通餵給它們同一個最深的 targetPixel！
+    applyBg(leftDoor, leftSrc, targetPixel);
+    applyBg(rightDoor, rightSrc, targetPixel);
+
     if (doorsContainer) {
         doorsContainer.style.opacity = '1';
     }

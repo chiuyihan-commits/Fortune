@@ -84,7 +84,7 @@ const lotsJiazi_60 = [
 window.poemSystems['Jiazi_60'] = {
     id: 'Jiazi_60',
     name: '六十甲子籤',
-    total: 60, // 總籤數為 60，0號視為籤王
+    total: 61, // 總籤數為 60，0號視為籤王，共計61籤
     format: 'jiazi', // ★ 綁定下方註冊的專屬版型
     category: 'jiazi',
     isBase: true,
@@ -153,7 +153,7 @@ window.customPoemTemplates['jiazi'] = function (poem, cleanLotNum, templeName, d
     let tName = templeName || '六十甲子籤';
 
     // ==========================================
-    // ★ 處理籤王 (第 0 籤)
+    // ★ 處理籤王 (第 0 籤) - 修復變數未定義崩潰與版面錯位
     // ==========================================
     if (poem.isKing) {
         const defaultV = poem.versions[4]; // 預設顯示版本五
@@ -167,22 +167,17 @@ window.customPoemTemplates['jiazi'] = function (poem, cleanLotNum, templeName, d
             <style>
                 .jz-container { aspect-ratio: 100 / 170 !important; background: #fff; color: #000; border: 4px solid #000; padding: 1cqw; font-family: "標楷體", "BiauKai", serif; box-sizing: border-box; }
                 .jz-inner { border: 1px solid #000; height: 100%; display: flex; flex-direction: column; position: relative; }
-                .jz-main { display: flex; flex-direction: row-reverse; flex: 1; border-bottom: 1px solid #000; }
-                .jz-col-right { width: 15%; border-left: 1px solid #000; display: flex; flex-direction: column; align-items: center; padding: 1cqw; }
-                .jz-lot-title { writing-mode: vertical-rl; text-orientation: upright; font-size: 6cqw; font-weight: bold; letter-spacing: 0.5cqw; }
                 .jz-poem { flex: 1; display: flex; flex-direction: row-reverse; justify-content: space-around; align-items: center; padding: 2cqw; }
-                .jz-poem-line { writing-mode: vertical-rl; text-orientation: upright; font-size: 9cqw; font-weight: bold; letter-spacing: 1cqw; }
-                .jz-footer { flex: 0.8; display: flex; flex-direction: column; }
-                .jz-footer-title { text-align: center; border-bottom: 1px solid #000; font-size: 5cqw; font-weight: bold; padding: 0.5cqw 0; letter-spacing: 5cqw; }
-                .jz-intent-grid { display: flex; flex-direction: row-reverse; justify-content: center; align-content: flex-start; height: 100%; padding: 1cqw; overflow-x: auto; gap: 4cqw; }
-                .jz-intent-item { writing-mode: vertical-rl; text-orientation: upright; display: flex; flex-direction: column; align-items: center; height: 90%; }
-                .jz-intent-key { font-size: 4.5cqw; font-weight: bold; margin-bottom: 1cqw; }
+                .jz-poem-line { writing-mode: vertical-rl; text-orientation: upright; font-size: 8.5cqw; font-weight: bold; letter-spacing: 1cqw; }
+                .jz-intent-grid { display: flex; flex-direction: row-reverse; justify-content: center; align-content: flex-start; height: 100%; padding: 2cqw; overflow-x: auto; gap: 3.5cqw; flex-wrap: wrap; }
+                .jz-intent-item { writing-mode: vertical-rl; text-orientation: upright; display: flex; flex-direction: column; align-items: center; }
+                .jz-intent-key { font-size: 4.5cqw; font-weight: 900; margin-bottom: 1cqw; }
                 .jz-intent-val { font-size: 3.8cqw; line-height: 1.2; }
                 .king-btn-group { display: flex; justify-content: center; gap: 5px; margin: 10px 0; flex-wrap: wrap; }
-                .king-btn { background: rgba(0,0,0,0.1); border: 1px solid #000; padding: 4px 8px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 0.85rem; }
+                .king-btn { background: rgba(255,255,255,0.85); color: #000; border: 1px solid #000; padding: 4px 8px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 0.85rem; }
             </style>
 
-            <div class="jiazi-king-wrapper">
+            <div class="jiazi-king-wrapper" style="width: 100%; max-width: 420px; margin: 0 auto;">
                 <div class="king-btn-group">
                     <button class="king-btn" onclick="toggleJiaziKingVersion(this, 0)">版本一</button>
                     <button class="king-btn" onclick="toggleJiaziKingVersion(this, 1)">版本二</button>
@@ -193,33 +188,34 @@ window.customPoemTemplates['jiazi'] = function (poem, cleanLotNum, templeName, d
 
                 <div class="fortune-slip jz-container">
                     <div class="jz-inner">
-                <div style="width: 12%; border-left: 1px solid #000; padding: 2cqw 1cqw; display: flex; align-items: center; justify-content: flex-start; writing-mode: vertical-rl; text-orientation: upright; font-size: 4.2cqw; font-weight: bold; letter-spacing: 0.3cqw; line-height: 1.2;">
-                    ${rightColText}
-                </div>
+                        <div style="width: 100%; border-bottom: 1px solid #000; padding: 1.5cqw 0; text-align: center;">
+                            <div style="font-size: 8cqw; font-weight: bold; letter-spacing: 2cqw; direction: rtl; unicode-bidi: bidi-override;">${tName}</div>
+                        </div>
 
-                <div style="flex: 1; display: flex; flex-direction: column;">
-                    <div style="font-size: 8cqw; font-weight: bold; text-align: center; border-bottom: 1px solid #000; letter-spacing: 2cqw; padding: 1cqw 0;">六十甲子籤</div>
-                    
-                    <div style="display: flex; flex-direction: row-reverse; border-bottom: 1px solid #000; min-height: 40cqw;">
-                        <div class="jz-poem">
-                            <div class="jz-poem-line">${poem.l1}</div>
-                            <div class="jz-poem-line">${poem.l2}</div>
-                            <div class="jz-poem-line">${poem.l3}</div>
-                            <div class="jz-poem-line">${poem.l4}</div>
-                        </div>
-                        <div class="jz-story-col">
-                            ${storyHtml}
+                        <div style="display: flex; flex-direction: row-reverse; flex: 1;">
+                            <div style="width: 15%; border-left: 1px solid #000; padding: 2cqw 1cqw; display: flex; align-items: center; justify-content: center; writing-mode: vertical-rl; text-orientation: upright; font-size: 6cqw; font-weight: bold; letter-spacing: 1cqw;">
+                                籤 王
+                            </div>
+
+                            <div style="flex: 1; display: flex; flex-direction: column;">
+                                <div style="display: flex; flex-direction: row-reverse; border-bottom: 1px solid #000; flex: 1.2;">
+                                    <div class="jz-poem">
+                                        <div class="jz-poem-line">${defaultV.l1}</div>
+                                        <div class="jz-poem-line">${defaultV.l2}</div>
+                                        <div class="jz-poem-line">${defaultV.l3}</div>
+                                        <div class="jz-poem-line">${defaultV.l4}</div>
+                                    </div>
+                                </div>
+                                
+                                <div style="display: flex; flex-direction: column; flex: 1;">
+                                    <div style="text-align: center; border-bottom: 1px solid #000; font-size: 5cqw; font-weight: bold; padding: 0.5cqw 0; letter-spacing: 15cqw;">解 曰</div>
+                                    <div class="jz-intent-grid">
+                                        ${gridHtml}
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
-                    
-                    <div style="display: flex; flex-direction: column;">
-                        <div style="text-align: center; border-bottom: 1px solid #000; font-size: 5cqw; font-weight: bold; padding: 0.5cqw 0; letter-spacing: 15cqw;">解 曰</div>
-                        <div style="display: flex; flex-direction: row-reverse; flex-wrap: wrap; width: 100%; align-content: flex-start; padding: 2cqw;">
-                            ${intentHtml}
-                        </div>
-                    </div>
-                </div>
-            </div>
                 </div>
             </div>
         `;

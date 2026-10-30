@@ -80,75 +80,47 @@ function updateCupDisplay(id, res) {
     // 如果是重置狀態 (-1)，隱藏框框
     if (res.type === -1) {
         el.innerText = res.text;
-        el.classList.remove('show'); // 隱藏
+        el.classList.remove('show');
         return;
     }
 
-    // ★ 新增：每次顯示筊杯結果時，觸發微小震動 (50毫秒)！
+    // 觸發微小震動
     triggerVibration(50);
 
-    // 有結果時，顯示框框
+    // 顯示框框並渲染「左邊隨機掉落不交疊筊杯 + 右邊延遲出現標示」
     el.classList.add('show');
-
-    let content = "";
-    if (res.imgSrc) {
-        content = `<img src="${res.imgSrc}" class="cup-icon-sm">`;
-    } else {
-        content = `<div class="res-dot ${res.dotClass}">${res.char}</div>`;
-    }
-    el.innerHTML = `<div class="cup-content" style="display:flex; align-items:center; justify-content:center;">${content}<span>${res.text}</span></div>`;
+    el.innerHTML = window.createScatteredBobeiHTML(res);
 }
 
-// ★ 專屬 Tap 模式切換邏輯 (點一下搖、再點一下停)
 window.toggleTapShake = function (e) {
     if (e && e.cancelable) e.preventDefault();
-    if (isDrawing) return; // 如果已經在出籤了就防連點
+    if (isDrawing) return;
 
     const animArea = document.getElementById('draw-anim-area');
     const instr = document.getElementById('draw-instruction');
 
     if (!isShaking) {
-        // 第一下點擊：開始搖晃
         isShaking = true;
-        // 加入 breathing-text 創造神秘呼吸感
-        if (instr) instr.innerHTML = "<span class='breathing-text'>✨ 抽籤中...憑直覺再次點擊抽籤</span>";
-
-        if (animArea) {
-            const qt = typeof getCurrentQtImages === 'function' ? getCurrentQtImages() : { static: '🏺', active: '🏺' };
-            animArea.innerHTML = qt.active.startsWith('data:')
-                ? `<img src="${qt.active}" class="shake-anim" style="height:100px; object-fit:contain;">`
-                : `<span style="font-size:4rem;" class="shake-anim" id="step2-cylinder-icon">${qt.active}</span>`;
-        }
+        if (instr) instr.innerHTML = `<div style="font-size:1.3rem; margin-bottom:5px; font-weight:bold;">第 ${window.getWaveHtml()} 籤</div><span class='breathing-text'>✨ 抽籤中...憑直覺再次點擊抽籤</span>`;
+        if (animArea) animArea.innerHTML = window.renderCylinderVisualHTML({ isShaking: true, isMini: false });
     } else {
-        // 第二下點擊：停止搖晃並出籤
         isShaking = false;
         isDrawing = true;
-
         if (animArea) animArea.removeEventListener('click', window.toggleTapShake);
-
         if (typeof finishDrawLot === 'function') finishDrawLot();
     }
 };
 
 function startTouchShake(e) {
-    if (e && e.cancelable) e.preventDefault(); // 阻止滾動與選取
+    if (e && e.cancelable) e.preventDefault();
     if (isDrawing || isShaking) return;
 
     isShaking = true;
-    // 🗑️ shakeStartTime = Date.now(); (已經不需要記時了)
-
     const animArea = document.getElementById('draw-anim-area');
     const instr = document.getElementById('draw-instruction');
-    const qt = typeof getCurrentQtImages === 'function' ? getCurrentQtImages() : { static: '🏺', active: '🏺' };
 
-    // ★ 加入高度鎖定與動態圖案切換
-    if (animArea) {
-        animArea.innerHTML = qt.active.startsWith('data:')
-            ? `<img src="${qt.active}" class="shake-anim" style="height:100px; object-fit:contain; pointer-events:none; user-select:none; -webkit-touch-callout:none;">`
-            : `<span style="font-size:4rem;" class="shake-anim" id="step2-cylinder-icon">${qt.active}</span>`;
-    }
-
-    if (instr) instr.innerText = "👋 撥動中... (放開抽籤) 👋";
+    if (animArea) animArea.innerHTML = window.renderCylinderVisualHTML({ isShaking: true, isMini: false });
+    if (instr) instr.innerHTML = `<div style="font-size:1.3rem; margin-bottom:5px; font-weight:bold;">第 ${window.getWaveHtml()} 籤</div>👋 撥動中... (放開抽籤) 👋`;
 }
 
 function stopTouchShake(e) {
@@ -177,12 +149,7 @@ function stopTouchShake(e) {
 }
 
 function showActiveImage(el, imgSrc) {
-    if (imgSrc.startsWith('data:')) {
-        const cls = imgSrc.startsWith('data:image/gif') ? '' : 'shake-anim';
-        el.innerHTML = `<img src="${imgSrc}" style="height:150px;width:auto; pointer-events:none; user-select:none; -webkit-touch-callout:none;" class="${cls}">`;
-    } else {
-        el.innerHTML = `<div style="font-size:5rem; user-select:none; pointer-events:none; -webkit-touch-callout:none;" class="shake-anim">${imgSrc}</div>`;
-    }
+    if (el) el.innerHTML = window.renderCylinderVisualHTML({ isShaking: true, isMini: false });
 }
 
 function startTimerDraw() {
@@ -209,75 +176,93 @@ function finishDrawLot() {
     const instr = document.getElementById('draw-instruction');
     if (instr) instr.innerText = "✨ 籤詩已出！";
 
-    let total = 101;
-    if (currentMode === 'normal') {
-        total = (currentSystem) ? currentSystem.total : (settings.customTotal || 60);
+    // ★ 核心修正 1：優先從系統的 content 抓取「真實存在的籤號池 (包含 0 籤王、201 籤首)」
+    let pool = [];
+    if (currentSystem && currentSystem.content && Object.keys(currentSystem.content).length > 0) {
+        pool = Object.keys(currentSystem.content).map(Number);
     } else {
-        total = (currentSystem ? currentSystem.total : 101);
+        let total = window.getActiveMaxLots ? window.getActiveMaxLots(false) : 100;
+        if (isNaN(total) || total < 1) total = 100;
+        pool = Array.from({ length: total }, (_, i) => i + 1);
     }
-    total = parseInt(total);
-    if (isNaN(total) || total < 1) total = 101;
 
-    // ★ 核心修正：判斷是否「抽後不放回」
     const putBack = document.getElementById('chk-put-back') && document.getElementById('chk-put-back').checked;
 
     if (!putBack) {
-        // 【不放回模式】
-
-        // 1. 檢查可用籤筒是否為空 (代表剛開始，或是全抽完了)，若為空則重新填滿 1~total
+        // 【不放回模式】從真實籤號池抽籤
         if (!window.availableLots || window.availableLots.length === 0) {
-            window.availableLots = Array.from({ length: total }, (_, i) => i + 1);
+            window.availableLots = [...pool];
         }
-
-        // 2. 從「還沒被抽掉的籤」裡面，隨機挑選一個「位置 (Index)」
         const randomIndex = Math.floor(Math.random() * window.availableLots.length);
-
-        // 3. 抽出該位置的籤號，並同時將它從陣列中刪除
         currentLot = window.availableLots.splice(randomIndex, 1)[0];
-
-        // 🛡️ 4. 防呆機制：萬一真的抽出 undefined，給它一個備用的隨機數
-        if (!currentLot) {
-            currentLot = Math.floor(Math.random() * total) + 1;
-        }
-
+        if (currentLot === undefined) currentLot = pool[Math.floor(Math.random() * pool.length)];
     } else {
-        // 【傳統模式】直接抽 (抽後放回)
-        currentLot = Math.floor(Math.random() * total) + 1;
+        // 【傳統放回模式】從真實籤號池隨機抽一支
+        currentLot = pool[Math.floor(Math.random() * pool.length)];
     }
 
-    //抽出籤的瞬間「登愣」的兩段震動效果
     triggerVibration([50, 100, 50]);
 
-    // ★ 核心修正 1：把數字放到畫面上方的獨立區塊
-    const lotNumDisplay = document.getElementById('lot-num-display');
-    if (lotNumDisplay) lotNumDisplay.innerText = currentLot;
-
-    // ★ 核心修正 2：讓上方的籤號區塊浮現 (透明度變 1)
+    // ★ 核心修正 2：完美顯示「籤王 / 籤首 / 第 X 籤」
     const titleEl = document.getElementById('step2-lot-title');
-    if (titleEl) titleEl.style.opacity = '1';
+    if (titleEl) {
+        if (currentLot === 0 || currentLot === 201 || currentLot === 202) {
+            const specialName = window.formatLotName ? window.formatLotName(currentLot) : `第 ${currentLot} 籤`;
+            titleEl.innerHTML = `<span id="lot-num-display" style="font-size:2.8rem;">${specialName}</span>`;
+        } else {
+            titleEl.innerHTML = `第 <span id="lot-num-display" style="font-size:3rem;">${currentLot}</span> 籤`;
+        }
+        titleEl.style.opacity = '1';
+    }
 
-    // ★ 核心修正 3：讓下方的籤筒變成「抽完籤」的終止狀態 (qt.active)
-    const qt = typeof getCurrentQtImages === 'function' ? getCurrentQtImages() : { static: '🏺', active: '🏺' };
-    animArea.innerHTML = qt.active.startsWith('data:')
-        ? `<img src="${qt.active}" style="height:100%; object-fit:contain; animation: popIn 0.5s;">`
-        : `<span style="font-size:4rem; animation: popIn 0.5s;" id="step2-cylinder-icon">${qt.active}</span>`;
+    // 左邊跳出寫著籤號的竹籤 + 右邊靜止籤筒
+    if (animArea) {
+        animArea.innerHTML = window.renderCylinderVisualHTML({ isShaking: false, drawnLot: currentLot, isMini: false });
+    }
 
-    // 延遲 800 毫秒後進入步驟 3
     setTimeout(() => {
-        initConfirmStep(); // 進入步驟 3
-    }, 800);
+        initConfirmStep();
+    }, 1100);
 }
 
-/* --- 步驟 3：確認籤號 (嚴格模式) --- */
 function initConfirmStep() {
     document.getElementById('step-2').style.display = 'none';
     document.getElementById('step-3').style.display = 'flex';
 
-    document.getElementById('confirm-lot-num').innerText = currentLot;
+    // ★ 核心修正 3：讓 Step 3 的標題也支援顯示「籤王 / 籤首」，不會出現「第 0 籤」
+    const confirmNumEl = document.getElementById('confirm-lot-num');
+    if (confirmNumEl && confirmNumEl.parentElement) {
+        if (currentLot === 0 || currentLot === 201 || currentLot === 202) {
+            const specialName = window.formatLotName ? window.formatLotName(currentLot) : `第 ${currentLot} 籤`;
+            confirmNumEl.parentElement.innerHTML = `<span id="confirm-lot-num" style="font-size:2.8rem;">${specialName}</span>`;
+        } else {
+            confirmNumEl.parentElement.innerHTML = `第 <span id="confirm-lot-num" style="font-size:3rem;">${currentLot}</span> 籤`;
+        }
+    }
+
+    // ★ 重置抽屜動畫與恢復提示文字顯示
+    const instructionEl = document.getElementById('confirm-instruction');
+    const statusTextEl = document.getElementById('confirm-status-text');
+    const confirmCupEl = document.getElementById('confirm-cup');
+    if (instructionEl) instructionEl.style.display = 'block';
+    if (statusTextEl) statusTextEl.style.display = 'block';
+    if (confirmCupEl) {
+        confirmCupEl.style.fontSize = "";
+        confirmCupEl.style.color = "";
+    }
+
+    const msgEl = document.getElementById('step-3-msg');
+    if (msgEl) {
+        if (msgEl.closest('.unified-block-hint')) {
+            msgEl.closest('.unified-block-hint').classList.remove('drawer-active');
+        }
+        msgEl.style.display = 'none';
+        msgEl.innerHTML = '';
+    }
+
     saintCount = 0;
     document.getElementById('saint-count').innerText = "0";
 
-    // 更新目標杯數
     let targetCount = 3;
     if (currentMode === 'deity' && currentDeity && currentDeity.saintTarget) {
         targetCount = parseInt(currentDeity.saintTarget);
@@ -299,7 +284,6 @@ function initConfirmStep() {
 function throwCupForConfirm() {
     const btn = document.getElementById('btn-confirm');
 
-    // ★ 交給引擎接管
     executeThrowCupWrapper(btn, (res) => {
         updateCupDisplay('confirm-cup', res);
 
@@ -314,24 +298,28 @@ function throwCupForConfirm() {
                 btn.style.display = 'none';
                 const topBtn = document.querySelector('#step-3 button[onclick="reDraw()"]');
                 if (topBtn) topBtn.style.display = 'none';
-                showStep3Actions(true);
+                // ★ 等待筊杯掉落攤開且右邊標示出現後，再切換為慶祝文字
+                setTimeout(() => {
+                    showStep3Actions(true);
+                }, 950);
             }
         } else {
             saintCount = 0;
             document.getElementById('saint-count').innerText = "0";
             btn.style.display = 'none';
 
-            // 🌟 1. 隱藏原本會出現的「笑/蓋筊請重新抽籤」外框訊息
             const msgEl = document.getElementById('confirm-msg');
             if (msgEl) msgEl.style.display = 'none';
 
-            // 🌟 2. 直接在剛產生出來的杯象 (res.text) 後面追加文字
-            const cupDisplay = document.getElementById('confirm-cup');
-            if (cupDisplay) {
-                cupDisplay.innerHTML += `<span style="color:#ff5252; font-weight:bold; font-size:1.2rem;">，請重新抽籤</span>`;
-            }
+            // ★ 直接把「，請重新抽籤」塞進右側延遲彈出的文字標籤裡，它就會跟著「笑筊/蓋筊」一起在攤開後浮現！
+            //const labelEl = document.querySelector('#confirm-cup .cup-res-label-text');
+            //if (labelEl) {
+            //    labelEl.innerHTML += `<span style="color:#ff5252; font-weight:bold;">，請重新抽籤</span>`;
+            //}
 
-            showStep3Actions(false);
+            setTimeout(() => {
+                showStep3Actions(false);
+            }, 650);
         }
     });
 }
@@ -345,6 +333,7 @@ function showStep3Actions(isSuccess) {
     const instructionEl = document.getElementById('confirm-instruction');
     const statusTextEl = document.getElementById('confirm-status-text');
     const confirmCupEl = document.getElementById('confirm-cup');
+    const hintBlock = msgEl ? msgEl.closest('.unified-block-hint') : null;
 
     actionArea.style.display = 'block';
     btnsEl.innerHTML = "";
@@ -354,36 +343,49 @@ function showStep3Actions(isSuccess) {
         if (instructionEl) instructionEl.style.display = 'none';
         if (statusTextEl) statusTextEl.style.display = 'none';
 
-        // 2. 直接將原本顯示筊杯的地方，換成慶祝文字
+        // 2. 將原本顯示筊杯的地方，換成慶祝文字
         if (confirmCupEl) {
             confirmCupEl.innerHTML = "🎉三聖筊確認🎉";
-            // 確保文字大小與顏色夠顯眼 (可依喜好調整)
-            confirmCupEl.style.fontSize = "1.8rem";
+            confirmCupEl.style.fontSize = "1.6rem";
             confirmCupEl.style.color = "var(--accent)";
         }
 
-        // 3. 隱藏原本的 msgEl，因為不需要再顯示「第XX籤 三聖筊確認」了
-        msgEl.innerText = "";
-        msgEl.style.display = 'none';
+        // ★ 3. 核心升級：在提示與按鈕中間，顯示「30度俯視拉開籤詩木抽屜 + 內部小籤紙」動畫！
+        const lotLabel = typeof window.formatStickCnLot === 'function' ? window.formatStickCnLot(currentLot, false) : `第 ${currentLot} 首`;
+        if (hintBlock) hintBlock.classList.add('drawer-active');
+        if (msgEl) {
+            msgEl.style.display = 'block';
+            msgEl.innerHTML = `
+                <div class="poem-cabinet-stage">
+                    <div class="cabinet-slot-frame">
+                        <div class="cabinet-drawer-box">
+                            <div class="drawer-slip-paper">
+                                <div class="drawer-slip-inner">
+                                    <div class="drawer-slip-lines"><i></i><i></i><i></i></div>
+                                    <span class="drawer-slip-title">${lotLabel}</span>
+                                </div>
+                            </div>
+                            <div class="drawer-front-panel">
+                                <span class="drawer-front-badge">${lotLabel}</span>
+                                <div class="drawer-pull-ring"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
 
-        // 顯示領取籤詩按鈕
+        // 4. 顯示領取籤詩按鈕
         btnsEl.innerHTML = `<button class="action-btn" onclick="showResult()">📜 領取籤詩</button>`;
     } else {
-        // 求籤失敗時 (蓋筊或笑筊)
-
-        // 請擲筊確認是否為此籤 (需連續3聖筊)」提示開關
+        // 求籤失敗時 (蓋筊或笑筊)：確保移除抽屜高度解鎖
+        if (hintBlock) hintBlock.classList.remove('drawer-active');
         if (instructionEl) instructionEl.style.display = 'none';
-        // 「目前：0聖筊」提示開關
         if (statusTextEl) statusTextEl.style.display = 'block';
-        msgEl.style.display = 'block';
 
-        msgEl.innerText = "求籤失敗 (未滿三聖筊)";
-        msgEl.style.color = "#f44336";
-
-        // 🌟 5. 隱藏原本的「求籤失敗 (未滿三聖筊)」文字
         if (msgEl) {
             msgEl.style.display = 'none';
-            msgEl.innerText = "";
+            msgEl.innerHTML = "";
         }
 
         // 提供「重新抽籤」按鈕
@@ -420,19 +422,20 @@ window.retryDraw = function () {
     // 畫面上的聖杯計數器歸零
     if (saintCountEl) saintCountEl.innerText = "0";
 
-    // 隱藏成功/失敗的提示訊息區塊
+    // ★ 隱藏成功/失敗的提示訊息區塊，並移除抽屜高度解鎖 (直接使用上面宣告過的 msgEl，不重複宣告！)
     if (msgEl) {
+        if (msgEl.closest('.unified-block-hint')) {
+            msgEl.closest('.unified-block-hint').classList.remove('drawer-active');
+        }
         msgEl.style.display = 'none';
-        msgEl.innerText = "";
+        msgEl.innerHTML = "";
     }
 
     // 隱藏下方的按鈕區 (避免一進來就看到)
     const actionArea = document.getElementById('step-3-action-area');
     if (actionArea) actionArea.style.display = 'none';
 
-    // ==========================================
     // 3. 確保內部計數器歸零
-    // ==========================================
     if (typeof currentSaints !== 'undefined') {
         currentSaints = 0;
     }
@@ -442,14 +445,10 @@ window.retryDraw = function () {
     if (typeof isShaking !== 'undefined') isShaking = false;
     window.isThrowingCup = false;
 
-    // ==========================================
-    // ★ 5. UI 無縫接軌還原魔法 (移至 setupDrawStep2 前面執行)
-    // ==========================================
     // 5-1. 把上方的籤號重新隱藏
     const titleEl = document.getElementById('step2-lot-title');
     if (titleEl) titleEl.style.opacity = '0';
 
-    // 改變文字會觸發背後的 MutationObserver
     const lotNumDisplay = document.getElementById('lot-num-display');
     if (lotNumDisplay) lotNumDisplay.innerText = '?';
 
@@ -457,15 +456,11 @@ window.retryDraw = function () {
     const instr = document.getElementById('draw-instruction');
     if (instr) instr.innerText = "請抽籤";
 
-    // 🗑️ 刪除了 5-3，不再手動覆寫籤筒！防呆交給 setupDrawStep2 處理。
-
     // 4. 執行重置動畫區函數
-    // ★ 核心修正 3：加入 setTimeout！確保在 Observer 執行完畢後，
-    // 再由 setupDrawStep2 覆蓋上帶有「防觸控選取 (pointer-events:none)」的最完美 DOM。
     setTimeout(() => {
         if (typeof setupDrawStep2 === 'function') setupDrawStep2();
     }, 10);
-}
+};
 
 function showResult() {
     document.getElementById('step-3').style.display = 'none';
@@ -512,7 +507,7 @@ function showResult() {
 
 window.finishQiuqian = async function () {
     if (confirm("確定要中斷求籤並返回首頁嗎？")) {
-    //if (await showConfirm("確定要中斷求籤並返回首頁嗎？", "中斷求籤")) {
+        //if (await showConfirm("確定要中斷求籤並返回首頁嗎？", "中斷求籤")) {
         isQiuqianActive = false; // ★ 確定要結束，解除防跳出攔截
         goTo('home');
     }
@@ -673,12 +668,16 @@ function openSystemList(sysId, title) {
     const c = document.getElementById('poem-list-container');
     c.innerHTML = "";
 
-    // ★ 動態處理排序：有什麼號碼就排什麼，把 101, 102 抓到最前面
+    // ★ 動態處理排序：套用全新的虛擬權重引擎
     let lots = Object.keys(currentSystem.content).map(Number);
     lots.sort((a, b) => {
-        if (a > 100 && b <= 100) return -1; // 101, 102 放前面
-        if (b > 100 && a <= 100) return 1;
-        return a - b; // 其餘照順序
+        const getWeight = (num) => {
+            if (num === 0) return -2;       // 籤王：權重最小，永遠第一
+            if (num === 201) return -1;     // 籤首：權重次小，排在籤王後面、第 1 首前面
+            if (num === 202) return 999999; // 籤尾：權重最大，永遠墊底
+            return num;                     // 一般籤詩：直接用籤號當權重 (1, 2, 3...)
+        };
+        return getWeight(a) - getWeight(b);
     });
 
     // 依序畫出按鈕
@@ -691,16 +690,20 @@ function openSystemList(sysId, title) {
         const hasText = poem && (poem.l1 || poem.poem || poem.img || poem.v1 || poem.isKing);
 
         let previewText = '待建檔';
-        if (poem.isKing) previewText = '籤首'; // 籤王列表顯示為籤首
+
+        // 💡 小提醒：你原本這裡寫 `if (poem.isKing) previewText = '籤首';`
+        // 如果這個屬性是指「籤王」，或許可以改成 `previewText = '籤王';` 會更一致喔！
+        if (poem.isKing) previewText = '籤首';
         else if (poem.l1) previewText = poem.l1;
         else if (poem.poem) previewText = poem.poem.split(/[，,。]/)[0];
         else if (poem.v1) previewText = poem.v1[0];
         else if (poem.img) previewText = '圖片籤詩';
 
-        let idxText = `第${i}首`;
-        if (i === 0) idxText = "籤　首"; // 數字 0 顯示為籤首
-        if (i === 101) idxText = "籤　首";
-        if (i === 102) idxText = "籤　尾";
+        // 列表按鈕名稱轉換修正
+        let idxText = `第 ${i} 首`;
+        if (i === 0) idxText = "籤 王";
+        if (i === 201) idxText = "籤 首"; // 101 已修正為 201
+        if (i === 202) idxText = "籤 尾"; // 102 已修正為 202
 
         btn.innerHTML = `<div class="poem-idx">${idxText}</div><div class="poem-text">${hasText ? previewText : '待建檔'}</div>`;
         btn.onclick = () => { currentLot = i; goTo('collection-view'); renderPoemView(); };
@@ -753,7 +756,16 @@ function saveRecord() {
         typeStr = currentDeity ? currentDeity.name : '未知神明';
     }
 
-    const rec = { id: Date.now(), date: new Date().toLocaleString(), type: typeStr, lot: currentLot, subject: sub, note: note };
+    const rec = {
+        id: Date.now(),
+        date: new Date().toLocaleString(),
+        type: typeStr,
+        lot: currentLot,
+        subject: sub,
+        note: note,
+        source: 'online' // 🌟 APP 求籤的紀錄，一律標示為線上
+    };
+
     window.Database.saveRecord(rec);
     isQiuqianActive = false;
     window.isFortuneSaved = true;
@@ -778,14 +790,37 @@ window.renderRecords = function () {
     const filterType = document.getElementById('search-filter')?.value || "all";
 
     let filteredRecords = records.filter(r => {
+        // 🛡️ 防呆：強制轉為字串 (String)
+        let rType = String(r.type || "");
+        let rSubj = String(r.subject || "");
+        let rNote = String(r.note || "");
+
+        // 🌟 新增：取得安全的日期字串用來比對
+        let rDateStr = "";
+        if (r.date) rDateStr = String(r.date);
+        else if (r.timestamp) rDateStr = new Date(r.timestamp).toLocaleDateString();
+        else if (r.id) rDateStr = new Date(r.id).toLocaleDateString();
+
+        // 🌟 修改：將日期的比對 (rDateStr) 也加進來
         const matchKey = !keyword ||
-            (r.subject && r.subject.toLowerCase().includes(keyword)) ||
-            (r.note && r.note.toLowerCase().includes(keyword));
+            rSubj.toLowerCase().includes(keyword) ||
+            rNote.toLowerCase().includes(keyword) ||
+            rType.toLowerCase().includes(keyword) ||
+            rDateStr.toLowerCase().includes(keyword); // 👈 加上這行！
+
         let matchType = true;
-        if (filterType === 'poem') matchType = !r.type.includes('問事') && !r.type.includes('比較');
-        if (filterType === 'simple') matchType = r.type.includes('問事');
-        if (filterType === 'compare') matchType = r.type.includes('比較');
+        if (filterType === 'poem') matchType = !rType.includes('問事') && !rType.includes('比較');
+        if (filterType === 'simple') matchType = rType.includes('問事');
+        if (filterType === 'compare') matchType = rType.includes('比較');
         return matchKey && matchType;
+    });
+
+    // 🌟 強制將過濾後的紀錄按照日期排序 (新 -> 舊)
+    filteredRecords.sort((a, b) => {
+        // 優先讀取真實時間戳 (timestamp)，如果舊資料沒有，就退回使用建立時間 (id)
+        const timeA = a.timestamp || a.id;
+        const timeB = b.timestamp || b.id;
+        return timeB - timeA;
     });
 
     if (filteredRecords.length === 0) {
@@ -812,6 +847,13 @@ window.renderRecords = function () {
         } else if (r.type.includes("比較")) {
             tagClass = "tag-blue"; tagName = "比較擲筊";
             displayDeity = r.type.replace("(比較)", "").replace("比較擲筊", "").replace("比較", "").trim();
+        } else {
+            // 🌟 針對「神明求籤」的判斷
+            if (r.source === 'manual') {
+                tagName = "神明求籤(手)";
+            } else {
+                tagName = "神明求籤(線)"; // 包含以前舊有的紀錄，預設都是線上起卦
+            }
         }
 
         if (r.lot && r.lot !== '-') {
@@ -846,20 +888,44 @@ window.renderRecords = function () {
             </div>
         `;
         c.appendChild(div);
-    });
+        
+        const wrapper = div.querySelector('.swipe-scroll-wrapper');
+        if (wrapper) {
+            wrapper.addEventListener('scroll', function () {
+                // 當這張卡片被往左滑開超過 20px 時
+                if (this.scrollLeft > 20) {
+                    // 尋找其他已經被滑開的卡片，強制把它們平滑地關起來
+                    document.querySelectorAll('.swipe-scroll-wrapper').forEach(other => {
+                        if (other !== this && other.scrollLeft > 0) {
+                            other.scrollTo({ left: 0, behavior: 'smooth' });
+                        }
+                    });
+                }
+            });
+        }
+    }); // 這是原本 forEach 的結尾
 };
 
 // ==========================================
 // ★ 開啟紀錄詳情 (修復神明後綴字比對錯誤)
 // ==========================================
-window.openRecordDetail = function (id) {
+window.openRecordDetail = function (id, isTrash = false) {
     currentDetailRecordId = id;
+    window.isViewingTrashDetail = isTrash; // 記錄全域狀態，讓其他函數也能知道
 
     if (typeof window.renderDetailFuRows === 'function') window.renderDetailFuRows();
     const qText = document.getElementById('detail-fu-q-text');
     if (qText) qText.value = "";
 
-    const r = records.find(x => x.id == id);
+    // 🌟 依據是否在垃圾桶，從不同的來源抓取資料
+    let r;
+    if (window.isViewingTrashDetail) {
+        let trash = JSON.parse(localStorage.getItem('zb_trash_records_v3') || '[]');
+        r = trash.find(x => x.id == id);
+    } else {
+        r = records.find(x => x.id == id);
+    }
+    
     if (!r) return;
 
     const idEl = document.getElementById('detail-id');
@@ -877,20 +943,38 @@ window.openRecordDetail = function (id) {
     const lotEl = document.getElementById('detail-lot');
     if (lotEl) lotEl.innerText = `${r.type} ${r.lot && r.lot !== '-' ? '#' + r.lot : ''}`;
 
-    const area = document.getElementById('detail-res-container');
+    // 🌟 垃圾桶純瀏覽模式：封印輸入框、變成灰階、隱藏操作區塊
+    const pageDetail = document.getElementById('page-record-detail');
+    const fuInputBox = document.getElementById('detail-fu-input-container');
     const shareBtn = document.getElementById('btn-share-poem');
 
-    if (shareBtn) shareBtn.style.display = 'none';
+    if (window.isViewingTrashDetail) {
+        if (pageDetail) pageDetail.style.filter = 'grayscale(100%) opacity(0.8)';
+        if (subjEl) { subjEl.readOnly = true; subjEl.style.pointerEvents = "none"; subjEl.style.color = "#888"; }
+        if (noteEl) { noteEl.readOnly = true; noteEl.style.pointerEvents = "none"; noteEl.style.color = "#888"; }
+        if (fuInputBox) fuInputBox.style.display = 'none'; // 隱藏追問新增區
+        if (shareBtn) shareBtn.style.display = 'none'; // 隱藏分享
+    } else {
+        if (pageDetail) pageDetail.style.filter = 'none';
+        if (subjEl) { subjEl.readOnly = false; subjEl.style.pointerEvents = "auto"; subjEl.style.color = "#fff"; }
+        if (noteEl) { noteEl.readOnly = false; noteEl.style.pointerEvents = "auto"; noteEl.style.color = "#fff"; }
+        if (fuInputBox) fuInputBox.style.display = 'block'; // 恢復顯示追問新增區
+    }
+
+    const area = document.getElementById('detail-res-container');
 
     if (area) {
         area.innerHTML = "";
 
         if (r.compareData) {
+            // 🌟 垃圾桶模式下隱藏「編輯」按鈕
+            let editBtnHtml = window.isViewingTrashDetail ? "" : `<button class="edit-icon-btn" onclick="toggleEditResult()">✎ 編輯</button>`;
+            
             area.innerHTML = `
                 <div class="detail-label">比較結果</div>
                 <div id="compare-readonly-box" class="readonly-box">
                     ${r.compareData}
-                    <button class="edit-icon-btn" onclick="toggleEditResult()">✎ 編輯</button>
+                    ${editBtnHtml}
                 </div>
                 <textarea id="compare-edit-area" style="display:none;" rows="5" onchange="saveDetailChanges()">${r.compareData}</textarea>
             `;
@@ -916,7 +1000,7 @@ window.openRecordDetail = function (id) {
             } else if (r.lot && !isNaN(r.lot) && r.lot !== '-') {
                 if (system) {
                     area.innerHTML = typeof getFortuneSlipHTML === 'function' ? getFortuneSlipHTML(parseInt(r.lot), system, deity) : '';
-                    if (shareBtn) shareBtn.style.display = 'block';
+                    if (shareBtn && !window.isViewingTrashDetail) shareBtn.style.display = 'block'; // 確認非垃圾桶才顯示分享
                 } else {
                     area.innerHTML = `
                     <div style="text-align:center; padding:20px; border:1px solid #555; border-radius:10px; background:#222;">
@@ -968,16 +1052,27 @@ function saveDetailChanges() {
 
 // 刪除紀錄 (替換 confirm)
 window.deleteRecord = async function (id, fromDetail = false) { // ★ 加上 async
-    if (confirm("確定要永久刪除此紀錄嗎？\n(刪除後無法復原)")) {
-    //if (await showConfirm("確定要永久刪除此紀錄嗎？\n(刪除後無法復原)", "刪除確認")) { // ★ 取代 confirm
-        if (typeof window.deleteFromCloud === 'function') window.deleteFromCloud(id); // ★ 同步刪除雲端
+    if (confirm("確定要將此紀錄移至垃圾桶嗎？")) { 
         const numId = parseInt(id, 10);
+        
+        // 🌟 1. 找出要刪除的紀錄，並存入垃圾桶
+        const recToTrash = records.find(r => parseInt(r.id, 10) === numId);
+        if (recToTrash) {
+            let trash = JSON.parse(localStorage.getItem('zb_trash_records_v3') || '[]');
+            trash.unshift(recToTrash);
+            localStorage.setItem('zb_trash_records_v3', JSON.stringify(trash));
+        }
+
+        if (typeof window.deleteFromCloud === 'function') window.deleteFromCloud(id); // ★ 同步刪除雲端
+        
+        // 🌟 2. 從主紀錄中移除
         records = records.filter(r => parseInt(r.id, 10) !== numId);
         localStorage.setItem('zb_records_v3', JSON.stringify(records));
+        
         if (fromDetail) goBack(); else renderRecords();
-        showToast("🗑️ 紀錄已刪除");
+        showToast("🗑️ 紀錄已移至垃圾桶");
     }
-}
+};
 
 // ==========================================
 //  抽籤模式切換與設定儲存 (統一修復版)
@@ -1056,7 +1151,7 @@ function initCupIcons() {
 
 window.resetAllCups = async function () {
     if (confirm("確定清除所有自訂的筊杯圖片嗎？")) {
-    //if (await showConfirm("確定清除所有自訂的筊杯圖片嗎？", "還原確認")) {
+        //if (await showConfirm("確定清除所有自訂的筊杯圖片嗎？", "還原確認")) {
         ['cup_saint', 'cup_laugh', 'cup_covered'].forEach(k => localStorage.removeItem('custom_' + k));
         initCupIcons();
         showToast("🗑️ 已還原預設筊杯");
@@ -1065,7 +1160,7 @@ window.resetAllCups = async function () {
 
 window.resetQiantong = async function () {
     if (confirm("確定還原預設籤筒圖像嗎？")) {
-    //if (await showConfirm("確定還原預設籤筒圖像嗎？", "還原確認")) {
+        //if (await showConfirm("確定還原預設籤筒圖像嗎？", "還原確認")) {
         localStorage.removeItem('custom_qiantong_img');
         initCupIcons();
         showToast("🗑️ 已還原預設籤筒");
@@ -1104,6 +1199,9 @@ window.renderFollowUps = function (record) {
     }
 
     record.followUps.forEach((b, i) => {
+        // 🌟 1. 新增：判斷是否在垃圾桶，若是純瀏覽模式則隱藏刪除按鈕
+        let deleteBtnHtml = window.isViewingTrashDetail ? "" : `<button data-html2canvas-ignore="true" onclick="deleteDetailFollowUp(${record.id}, ${i})" style="position:absolute; right:10px; top:10px; background:transparent; border:1px solid #d32f2f; color:#d32f2f; border-radius:4px; padding:2px 8px; font-size:0.75rem; cursor:pointer;">刪除</button>`;
+
         let visualHtml = b.html || "";
         if (!visualHtml && b.details && b.details.length > 0) {
             visualHtml = `<div class="res-dots-container" style="margin-top:5px;">`;
@@ -1118,19 +1216,19 @@ window.renderFollowUps = function (record) {
         // 🌟 新增：解析時間並轉換為 HTML
         let timeHtml = b.time ? `<div style="font-size:0.75rem; color:#888; margin-bottom:4px;">🕒 ${b.time}</div>` : '';
 
-        // 🌟 將 timeHtml 塞進面板裡 (放在問題的上方)
+        // 🌟 2. 修改：將原本寫死的刪除按鈕替換為 ${deleteBtnHtml}
         list.innerHTML += `
-                <div id="record-fu-${record.id}-${i}" class="session-block" style="padding:12px; background:rgba(255,255,255,0.05); border-left:3px solid var(--accent); border-radius:8px; margin-bottom:10px; position:relative;">
-                    
-                    <button data-html2canvas-ignore="true" onclick="deleteDetailFollowUp(${record.id}, ${i})" style="position:absolute; right:10px; top:10px; background:transparent; border:1px solid #d32f2f; color:#d32f2f; border-radius:4px; padding:2px 8px; font-size:0.75rem; cursor:pointer;">刪除</button>
-                    
-                    ${timeHtml}
-                    <div class="q-text" style="font-size:0.95rem; margin-bottom:5px; color:#ddd; font-weight:bold; padding-right:80px;">問：${b.question}</div>
-                    <div class="a-text" style="font-size:0.9rem; color:var(--accent);">答：${b.result}</div>
-                    ${visualHtml}
-                    ${b.poemBtn ? `<div style="margin-top:8px;">${b.poemBtn}</div>` : ''}
-                </div>
-            `;
+            <div id="record-fu-${record.id}-${i}" class="session-block" style="padding:12px; background:rgba(255,255,255,0.05); border-left:3px solid var(--accent); border-radius:8px; margin-bottom:10px; position:relative;">
+                
+                ${deleteBtnHtml}
+                
+                ${timeHtml}
+                <div class="q-text" style="font-size:0.95rem; margin-bottom:5px; color:#ddd; font-weight:bold; padding-right:80px;">問：${b.question}</div>
+                <div class="a-text" style="font-size:0.9rem; color:var(--accent);">答：${b.result}</div>
+                ${visualHtml}
+                ${b.poemBtn ? `<div style="margin-top:8px;">${b.poemBtn}</div>` : ''}
+            </div>
+        `;
     });
 };
 
@@ -1459,3 +1557,97 @@ window.addEventListener('beforeunload', function (e) {
         e.returnValue = '您有尚未儲存的紀錄，確定要離開嗎？';
     }
 });
+
+// 🌟 新增：渲染垃圾桶列表
+window.renderTrashRecords = function () {
+    const c = document.getElementById('trash-container');
+    if (!c) return;
+    c.innerHTML = "";
+    
+    let trash = JSON.parse(localStorage.getItem('zb_trash_records_v3') || '[]');
+    if (trash.length === 0) {
+        c.innerHTML = "<div style='text-align:center;color:#666;margin-top:20px;'>垃圾桶是空的</div>";
+        return;
+    }
+
+    trash.forEach(r => {
+        const div = document.createElement('div');
+        div.className = 'record-item';
+        // 讓垃圾桶內的紀錄變淡灰
+        div.style.cssText = "padding:15px; border-radius:10px; margin-bottom:10px; border:1px solid #444; background: rgba(255,255,255,0.02); cursor:pointer; filter: grayscale(100%) opacity(0.7);";
+
+        let tagClass = "tag-white"; let tagName = "一般求籤"; let displayDeity = r.type;
+
+        if (r.type.includes("一般求籤") || r.type.includes("(一般)")) {
+            displayDeity = r.type.replace("一般求籤", "").replace("(一般)", "").trim();
+        } else if (r.type.includes("問事")) {
+            tagClass = "tag-red"; tagName = "問事擲筊"; displayDeity = r.type.replace("(問事)", "").replace("問事", "").trim();
+        } else if (r.type.includes("比較")) {
+            tagClass = "tag-blue"; tagName = "比較擲筊"; displayDeity = r.type.replace("(比較)", "").replace("比較擲筊", "").replace("比較", "").trim();
+        } else {
+            tagName = r.source === 'manual' ? "神明求籤(手)" : "神明求籤(線)";
+        }
+
+        if (r.lot && r.lot !== '-') {
+            let lotHtml = `<span style="margin-left:4px;">#${r.lot}</span>`;
+            displayDeity = displayDeity ? (displayDeity + lotHtml) : lotHtml;
+        }
+
+        let mainSubject = r.subject;
+        if ((!mainSubject || mainSubject.trim() === "") && r.lot && r.lot !== '-') mainSubject = `第 ${r.lot} 籤`;
+
+        div.innerHTML = `
+            <div class="rec-top" style="display:block;">
+                <div class="rec-header-row">
+                    <span class="rec-tag ${tagClass}" style="filter: grayscale(1);">${tagName}</span>
+                    <span class="rec-deity-name">${displayDeity}</span>
+                    <span class="rec-date" style="margin-left:auto; margin-right:10px;">${r.date.split(' ')[0]}</span>
+                </div>
+                <span class="rec-main-subject">${mainSubject || "(無主旨)"}</span>
+            </div>
+            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top:12px; border-top:1px dashed #555; padding-top:12px;">
+                <button onclick="event.stopPropagation(); window.restoreRecord(${r.id})" style="background:transparent; border:1px solid #4CAF50; color:#4CAF50; border-radius:15px; padding:6px 15px; font-size:0.85rem; cursor:pointer;">↩️ 復原</button>
+                <button onclick="event.stopPropagation(); window.permanentDeleteRecord(${r.id})" style="background:transparent; border:1px solid #f44336; color:#f44336; border-radius:15px; padding:6px 15px; font-size:0.85rem; cursor:pointer;">❌ 刪除</button>
+            </div>
+        `;
+        
+        // 點擊以純瀏覽模式開啟
+        div.onclick = () => window.openRecordDetail(r.id, true);
+        c.appendChild(div);
+    });
+};
+
+window.restoreRecord = function(id) {
+    let trash = JSON.parse(localStorage.getItem('zb_trash_records_v3') || '[]');
+    const numId = parseInt(id, 10);
+    const rec = trash.find(r => parseInt(r.id, 10) === numId);
+    if (rec) {
+        if (!rec.timestamp) rec.timestamp = Date.now(); // 確保骨子還在
+        records.unshift(rec);
+        localStorage.setItem('zb_records_v3', JSON.stringify(records));
+        
+        trash = trash.filter(r => parseInt(r.id, 10) !== numId);
+        localStorage.setItem('zb_trash_records_v3', JSON.stringify(trash));
+        
+        renderTrashRecords();
+        showToast("✅ 紀錄已復原");
+    }
+};
+
+window.permanentDeleteRecord = function(id) {
+    if (confirm("確定要永久刪除此紀錄嗎？(無法復原)")) {
+        let trash = JSON.parse(localStorage.getItem('zb_trash_records_v3') || '[]');
+        trash = trash.filter(r => parseInt(r.id, 10) !== parseInt(id, 10));
+        localStorage.setItem('zb_trash_records_v3', JSON.stringify(trash));
+        renderTrashRecords();
+        showToast("🗑️ 紀錄已永久刪除");
+    }
+};
+
+window.emptyTrash = function() {
+    if (confirm("確定要清空垃圾桶嗎？(無法復原)")) {
+        localStorage.removeItem('zb_trash_records_v3');
+        renderTrashRecords();
+        showToast("🗑️ 垃圾桶已清空");
+    }
+};

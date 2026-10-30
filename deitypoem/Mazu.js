@@ -118,11 +118,16 @@ window.RAW_POEM_ARRAYS['mazu'].forEach(p => {
         l3: p[3],
         l4: p[4],
         intents: [
-            { type: "功名", text: p[5] }, { type: "生意", text: p[6] },
-            { type: "六甲", text: p[7] }, { type: "婚姻", text: p[8] },
-            { type: "丁口", text: p[9] }, { type: "收成", text: p[10] },
-            { type: "官司", text: p[11] }, { type: "疾病", text: p[12] },
-            { type: "失物", text: p[13] }, { type: "求財", text: p[14] }
+            { type: "功名", text: p[5] },  //籤註上半塊
+            { type: "行人", text: p[7] },
+            { type: "婚姻", text: p[9] },
+            { type: "官司", text: p[11] },
+            { type: "丁口", text: p[13] },
+            { type: "生意", text: p[6] },  //籤註下半塊
+            { type: "疾病", text: p[8] },
+            { type: "出行", text: p[10] },
+            { type: "失物", text: p[12] },
+            { type: "田畜", text: p[14] }
         ]
     };
 });

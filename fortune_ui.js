@@ -218,8 +218,8 @@ window.saveBgSettings = function () {
 // 2. 升級還原預設的確認視窗 (加上 async/await 與 showConfirm)
 window.resetBgSettings = async function () {
     if (confirm('確定要還原為預設的黑紅主題嗎？')) {
-    //美美的 confirm，考量程式運作安全性捨去不用，注意前面一定要加 await
-    //if (await showConfirm('確定要還原為預設的黑紅主題嗎？', '還原確認')) {
+        //美美的 confirm，考量程式運作安全性捨去不用，注意前面一定要加 await
+        //if (await showConfirm('確定要還原為預設的黑紅主題嗎？', '還原確認')) {
         document.getElementById('global-header-color').value = '#d32f2f';
         document.getElementById('global-bg-color').value = '#1a1a1a';
         clearGlobalBg();
@@ -915,18 +915,23 @@ window.switchManualType = function (type) {
         typeInput.value = '一般求籤';
         document.getElementById('manual-normal-area').style.display = 'block';
         document.getElementById('manual-basic-area').style.display = 'block';
+        if (document.getElementById('manual-deity-source-checkbox')) document.getElementById('manual-deity-source-checkbox').style.display = 'none';
     } else if (type === 'deity') {
         typeInput.value = '神明求籤';
         document.getElementById('manual-deity-area').style.display = 'block';
         document.getElementById('manual-basic-area').style.display = 'block';
+        // 🌟 神明求籤時，顯示手動標示的 Checkbox
+        if (document.getElementById('manual-deity-source-checkbox')) document.getElementById('manual-deity-source-checkbox').style.display = 'block';
     } else if (type === 'ask') {
         typeInput.value = '問事擲筊';
-        document.getElementById('manual-deity-area').style.display = 'block'; // 問事也支援選神明
+        document.getElementById('manual-deity-area').style.display = 'block';
         document.getElementById('manual-ask-area').style.display = 'block';
+        if (document.getElementById('manual-deity-source-checkbox')) document.getElementById('manual-deity-source-checkbox').style.display = 'none';
     } else if (type === 'compare') {
         typeInput.value = '比較擲筊';
-        document.getElementById('manual-deity-area').style.display = 'block'; // 比較也支援選神明
+        document.getElementById('manual-deity-area').style.display = 'block';
         document.getElementById('manual-compare-area').style.display = 'block';
+        if (document.getElementById('manual-deity-source-checkbox')) document.getElementById('manual-deity-source-checkbox').style.display = 'none';
 
         // 預設塞入兩個「不可刪除」的選項
         const compRows = document.getElementById('manual-comp-rows');
@@ -970,9 +975,10 @@ window.addManualCompRow = function (placeholder = "項目名稱", isDeletable = 
 window.saveManualRecord = function () {
     const typeBase = document.getElementById('manual-type').value;
 
-    // ✨ 日期防呆：如果沒填，就抓取按下儲存這一瞬間的時間
+    // ✨ 日期防呆：抓取時間並轉換為時間戳記
     const rawDate = document.getElementById('manual-date').value;
-    const finalDate = rawDate ? new Date(rawDate).toLocaleString() : new Date().toLocaleString();
+    const newTime = rawDate ? new Date(rawDate).getTime() : Date.now();
+    const finalDate = new Date(newTime).toLocaleString();
 
     const note = document.getElementById('manual-note').value.trim();
 
@@ -1003,14 +1009,25 @@ window.saveManualRecord = function () {
         if (finalLot === '-') return showToast("⚠️ 一般求籤請務必輸入「籤號」！");
     }
     // 🛑 【神明求籤】防呆：必須選神明、必須輸入籤號
-    else if (typeBase === '神明求籤') {
+    // 在最上方宣告 finalSource
+    let finalSource = 'manual';
+
+    // 🛑 【神明求籤】防呆：必須選神明、必須輸入籤號
+    if (typeBase === '神明求籤') {
         if (!selectedDeityName) return showToast("⚠️ 神明求籤請務必選擇「神明」！");
         finalTypeStr = selectedDeityName;
         finalLot = document.getElementById('manual-lot').value || '-';
         finalSubject = document.getElementById('manual-subject').value.trim();
 
         if (finalLot === '-') return showToast("⚠️ 神明求籤請務必輸入「籤號」！");
+
+        // 🌟 讀取手動求籤 Checkbox 狀態
+        const isManualChk = document.getElementById('manual-is-manual-chk');
+        if (isManualChk) {
+            finalSource = isManualChk.checked ? 'manual' : 'online';
+        }
     }
+
     // 🛑 【問事擲筊】防呆：必須輸入問事內容、杯數至少1個
     else if (typeBase === '問事擲筊') {
         finalTypeStr = selectedDeityName ? `${selectedDeityName} (問事)` : '問事 (問事)';
@@ -1027,7 +1044,8 @@ window.saveManualRecord = function () {
 
         finalSubject = "手動問事紀錄";
         let questionText = q;
-        if (lot !== '-') questionText += ` [求得 第 ${lot} 籤]`;
+        // 🌟 修改這行，加上 (手)
+        if (lot !== '-') questionText += ` [求得 第 ${lot} 籤 (手)]`;
 
         let simulatedDetails = [];
         for (let i = 0; i < s; i++) simulatedDetails.push(1);
@@ -1073,7 +1091,7 @@ window.saveManualRecord = function () {
             const ls = parseInt(document.getElementById('manual-comp-lot-s') ? document.getElementById('manual-comp-lot-s').value : 0) || 0;
             const ll = parseInt(document.getElementById('manual-comp-lot-l') ? document.getElementById('manual-comp-lot-l').value : 0) || 0;
             const lc = parseInt(document.getElementById('manual-comp-lot-c') ? document.getElementById('manual-comp-lot-c').value : 0) || 0;
-            compareStr += `\n🎯 最終決定求得：第 ${lot} 籤`;
+            compareStr += `\n🎯 最終決定求得：第 ${lot} 籤 (手)`;
             if (ls + ll + lc > 0) {
                 compareStr += ` (${ls}聖 ${ll}笑 ${lc}蓋)`;
             }
@@ -1084,13 +1102,15 @@ window.saveManualRecord = function () {
 
     // --- 組合與儲存 ---
     const rec = {
-        id: Date.now(),
+        id: Date.now(), // 保持不變，這是資料庫的唯一識別碼
+        timestamp: newTime, // 🌟 新增這行：將骨子存入
         date: finalDate,
         type: finalTypeStr,
         lot: finalLot,
         subject: finalSubject,
         note: note,
-        followUps: finalFollowUps
+        followUps: finalFollowUps,
+        source: finalSource
     };
 
     if (finalCompareData) rec.compareData = finalCompareData;
@@ -1598,7 +1618,9 @@ window.goBack = async function () {
             'settings-normal': 'settings',
             'settings-mode': 'settings',
             'settings-backup': 'settings',
-            'settings-anim': 'settings'
+            'settings-anim': 'settings',
+            'trash': 'records',
+            'record-detail': window.isViewingTrashDetail ? 'trash' : 'records', // 👈 根據狀態決定回哪裡
         };
 
         // ★ 核心修正 1：動態判斷求籤頁面的返回目的地

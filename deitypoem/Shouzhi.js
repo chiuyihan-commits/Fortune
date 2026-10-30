@@ -11,7 +11,7 @@ window.extraDeities = window.extraDeities || [];
 // ------------------------------------------
 const lotsShouzhi = [
     {
-        lot: 100,
+        lot: 0,
         level: "大吉大利·萬事如意",
         l1: "受天賜福大吉昌",
         l2: "命得籤王百事良",
@@ -22,7 +22,7 @@ const lotsShouzhi = [
         ]
     },
     {
-        lot: 0,
+        lot: 201,
         level: "",
         l1: "籤頭百事良",
         l2: "添油大吉昌",
@@ -220,6 +220,22 @@ const lotsShouzhi = [
             { type: "出行", text: "去之吉時 可獲利回 把握時機" }, { type: "田畜", text: "時運屆至 神佛扶持 兩者豐收" },
             { type: "疾病", text: "無邪入心 雖是有恙 高枕無憂" }, { type: "官司", text: "可得意耶 唯留後步 面對世人" },
             { type: "失物", text: "耐心尋覓 必能找回 以後小心" }, { type: "時運", text: "運已到矣 財氣日增 珍惜此刻" }
+        ]
+    },
+    {
+        lot: 13,
+        level: "中下",
+        l1: "君方闡教",
+        l2: "四處奔走",
+        l3: "上帝敕命",
+        l4: "拜相封侯",
+        intents: [
+            { type: "功名", text: "汝生富家 修業容易 再奮發可" }, { type: "生意", text: "公平交易 童叟不欺 奠定信用" },
+            { type: "六甲", text: "先調吾身 神佛扶持 子息可求" }, { type: "婚姻", text: "成家立業 内人之力 居首之也" },
+            { type: "丁口", text: "各知奮發 惟散各地 時予連繫" }, { type: "行人", text: "管鮑之交 許之刎頸 宜惜友誼" },
+            { type: "出行", text: "此時出之 不適時也 在鄉較妥" }, { type: "田畜", text: "再續經營 方可獲利 目下回變" },
+            { type: "疾病", text: "養身攝制 病因除之 災厄即去" }, { type: "官司", text: "人得意時 宜留後步 方可除厄" },
+            { type: "失物", text: "遇小破財 解運之時 嗣後戒之" }, { type: "時運", text: "目下不宜 待時可得 求之不得" }
         ]
     },
     {
@@ -991,7 +1007,7 @@ lotsShouzhi.forEach(poem => {
         level: poem.level, l1: poem.l1, l2: poem.l2, l3: poem.l3, l4: poem.l4, intents: poem.intents
     };
 });
-window.poemSystems['shouzhi'].content[61] = window.poemSystems['shouzhi'].content[0];
+//window.poemSystems['shouzhi'].content[61] = window.poemSystems['shouzhi'].content[0];
 // ==========================================
 // 3. 註冊受旨宮專屬版型 (small_grid) - 支援籤王換行與特例
 // ==========================================
@@ -1009,9 +1025,9 @@ window.customPoemTemplates['shouzhi'] = function (poem, cleanLotNum, templeName,
 
     // 【籤號顯示邏輯】處理頭籤與籤王
     let lotDisplay = `第${getCn(lotNum)}籤`;
-    if (lotNum === 0) {
+    if (lotNum === 201) {
         lotDisplay = "頭籤";
-    } else if (lotNum === 100) {
+    } else if (lotNum === 0) {
         lotDisplay = "籤王";
     }
 
@@ -1073,12 +1089,12 @@ window.customPoemTemplates['shouzhi'] = function (poem, cleanLotNum, templeName,
             ">${lines[2] || ''}</div>
         </div>
     `;
-    } else if (lotNum === 100) {
+    } else if (lotNum === 0) {
         // 籤王：加入 font-size: 1.4em
         poemContent = lines.map((line) => {
             return line ? `<div class="sg-poem-column" style="flex: 1; margin: 0; padding: 0 2px; justify-content: center; align-items: center; font-size: 1.4em;"><div class="sg-poem-half" style="margin-top: 0; white-space: nowrap;">${line}</div></div>` : '';
         }).join('');
-    } else if (lotNum === 0) {
+    } else if (lotNum === 201) {
         // ▼▼▼ 頭籤專屬排版 ▼▼▼
         let linesHtml = lines.map((line, idx) => {
             const shiftDown = (idx % 2 !== 0) ? '1.5em' : '0';
@@ -1150,7 +1166,7 @@ window.customPoemTemplates['shouzhi'] = function (poem, cleanLotNum, templeName,
     let intentSection = "";
     let poemColStyle = "";
 
-    if (lotNum === 100) {
+    if (lotNum === 0) {
         const expText = intentsList[0] ? intentsList[0].text : "";
         const parts = expText.split(/[\s\n]+/).filter(s => s.trim() !== '');
 
@@ -1179,7 +1195,7 @@ window.customPoemTemplates['shouzhi'] = function (poem, cleanLotNum, templeName,
         `;
         poemColStyle = `style="flex: 0 0 75%; max-width: 75%; padding-right: 5px; box-sizing: border-box; overflow: hidden;"`;
 
-    } else if (lotNum === 0) {
+    } else if (lotNum === 201) {
         // ▼▼▼ 頭籤隱藏解釋區 ▼▼▼
         intentSection = "";
         // 【修改點 3：澈底清除疊加的邊框】
@@ -1208,7 +1224,7 @@ window.customPoemTemplates['shouzhi'] = function (poem, cleanLotNum, templeName,
     const levelText = poem.level ? `<div class="sg-level" style="font-size: 0.8rem; margin-top: 8px;">${poem.level}</div>` : "";
 
     let lotColHtml = "";
-    if (lotNum !== 0) {
+    if (lotNum !== 0 && lotNum !==201) {
         // ★ 調整上方籤號 (改用 rem 單位)
         // 您可以自由調整 1.2rem 的數字
         lotColHtml = `<div class="sg-lot-col"><div class="sg-lot-num" style="font-size: 0.85rem;">${lotDisplay}</div>${levelText}</div>`;

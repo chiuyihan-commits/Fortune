@@ -124,6 +124,7 @@ window.poemSystems['Guanyin_100'] = {
 // 將資料轉換寫入系統 content 中
 lotsGuanyin_100.forEach(poem => {
     window.poemSystems['Guanyin_100'].content[poem.lot] = {
+        l1: poem.v1[0], l2: poem.v1[1], l3: poem.v1[2], l4: poem.v1[3], // ★ 補上這行，全域搜尋與預覽完美相容！
         v1: poem.v1,
         v2: poem.v2,
         intent: poem.intent,

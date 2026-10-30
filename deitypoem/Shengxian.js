@@ -12,17 +12,17 @@ if (!window.poemSystems['Leiyushi_100']) {
     // 1. 【繼承魔法】深拷貝雷雨師的 100 首資料
     const shengxianContent = JSON.parse(JSON.stringify(window.poemSystems['Leiyushi_100'].content));
 
-    // 2. 【擴充資料】加入專屬的 101 (籤首) 與 102 (籤尾)
-    shengxianContent[101] = {
-        lot: 101,
+    // 2. 【擴充資料】加入專屬的 201 (籤首) 與 202 (籤尾)
+    shengxianContent[201] = {
+        lot: 201,
         level: "大吉",
         l1: "聖賢籤首百事良", l2: "添油作福大吉昌", l3: "萬般皆能如己意", l4: "富貴榮華福壽長",
         meaning: "百事皆吉、求財得利、病得安康。",
         dongpo: "籤首之尊、萬事如意。"
     };
 
-    shengxianContent[102] = {
-        lot: 102,
+    shengxianContent[202] = {
+        lot: 202,
         level: "大吉",
         l1: "聖賢籤尾好收場", l2: "春風化雨萬物長", l3: "此去前途多平穩", l4: "積善之家慶有餘",
         meaning: "功德圓滿、凡事大吉。",

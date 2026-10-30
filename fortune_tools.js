@@ -265,7 +265,11 @@ window.saveSimpleBlock = function () {
         const isOnline = document.getElementById('tab-simple-mode-online') && document.getElementById('tab-simple-mode-online').classList.contains('active');
         const lotNum = document.getElementById('simple-lot-num') ? document.getElementById('simple-lot-num').value.trim() : "";
 
-        if (isPoemActive && lotNum) finalQuestion = `${finalQuestion} [求得 第 ${lotNum} 籤]`;
+        // 🌟 這裡修改：加入 (線) 或 (手) 的微型標示
+        if (isPoemActive && lotNum) {
+            const sourceTag = isOnline ? '(線)' : '(手)';
+            finalQuestion = `${finalQuestion} [求得 第 ${lotNum} 籤 <span style="font-size:0.85em; color:#aaa;">${sourceTag}</span>]`;
+        }
 
         let saint = cups.filter(v => v === 1).length;
         let laugh = cups.filter(v => v === 0).length;
@@ -331,7 +335,11 @@ window.saveCompFuBlock = function () {
         const isOnline = document.getElementById('tab-comp-fu-mode-online') && document.getElementById('tab-comp-fu-mode-online').classList.contains('active');
         const lotNum = document.getElementById('comp-fu-lot-num') ? document.getElementById('comp-fu-lot-num').value.trim() : "";
 
-        if (isPoemActive && lotNum) finalQuestion = `${finalQuestion} [求得 第 ${lotNum} 籤]`;
+        // 🌟 這裡修改：加入 (線) 或 (手) 的微型標示
+        if (isPoemActive && lotNum) {
+            const sourceTag = isOnline ? '(線)' : '(手)';
+            finalQuestion = `${finalQuestion} [求得 第 ${lotNum} 籤 <span style="font-size:0.85em; color:#aaa;">${sourceTag}</span>]`;
+        }
 
         let saint = cups.filter(v => v === 1).length;
         let laugh = cups.filter(v => v === 0).length;
@@ -356,6 +364,15 @@ window.saveCompFuBlock = function () {
         if (document.getElementById('comp-fu-lot-num')) document.getElementById('comp-fu-lot-num').value = '';
         if (typeof window.renderCompFuHistory === 'function') window.renderCompFuHistory();
         if (typeof window.clearCompFuBlock === 'function') window.clearCompFuBlock(true);
+
+        // 🌟 加入 UX 優化：自動捲動對齊，讓使用者立刻看到剛存的紀錄
+        setTimeout(() => {
+            const actionArea = document.getElementById('comp-fu-action-area');
+            if (actionArea) {
+                actionArea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }, 100);
+
     } catch (e) { console.error("儲存追問區段發生錯誤", e); }
 };
 
@@ -1300,7 +1317,7 @@ window.loadSettings = function () {
     const radio = document.querySelector(`input[name="cup-result-type"][value="${resType}"]`);
     if (radio) radio.checked = true;
 
-    // 🌟 5. 統一處理所有與「秒數」相關的輸入框 (包含搖晃秒數、動畫秒數)
+    // 5. 統一處理所有與「秒數」相關的輸入框 (包含搖晃秒數、動畫秒數)
     const timeFields = {
         'input-anim-seconds': settings.animSeconds || 2,
         'cfg-splash-dur-start': settings.splashStart || 1.5,
@@ -1333,12 +1350,12 @@ window.loadSettings = function () {
         if (typeof window.toggleDbInput === 'function') window.toggleDbInput();
     }
 
-    // 🌟 整合新增：套用開場提詞到 3D 廟門與設定 UI 上
+    // 🌟 修正重點：套用開場提詞與燈籠顯示 (改為預設開啟邏輯)
     const textContainer = document.getElementById('splash-text-content');
     const dynamicText = document.getElementById('splash-dynamic-text');
 
-    // 從 settings 讀取設定 (如果沒設定過，預設為 true)
-    const isShow = settings.showSplashText === true
+    // 修正：只要不是明確被設為 false，全新狀態下一律預設為 true (開啟)
+    const isShow = settings.showSplashText !== false;
     const customText = settings.splashText || '誠心準備中...';
 
     // 1. 更新 3D 廟門的畫面
@@ -1353,6 +1370,13 @@ window.loadSettings = function () {
     if (chkUI) chkUI.checked = isShow;
     if (inpUI) inpUI.value = settings.splashText || '';
 
+    // 🌟 新增連動：同步更新「啟動開場畫面 (開門動畫)」的 Checkbox 狀態
+    const chkShowSplash = document.getElementById('cfg-show-splash');
+    if (chkShowSplash) {
+        // 配合 fortune_app.js 的寫法，非 'false' 即為勾選
+        chkShowSplash.checked = localStorage.getItem('cfg_show_splash') !== 'false';
+    }
+
     // 7. 更新畫面與預覽
     if (typeof updateImagePreviews === 'function') updateImagePreviews();
     if (typeof renderCupAnimPreviews === 'function') renderCupAnimPreviews();
@@ -1366,3 +1390,294 @@ window.loadSettings = function () {
     if (typeof window.updateSystemTotalUI === 'function') window.updateSystemTotalUI();
     if (typeof window.enforceCupModeLogic === 'function') setTimeout(window.enforceCupModeLogic, 200);
 };
+
+// =========================================================================
+// ★ 1. 萬用籤詩抽象化解析器 (Universal Poem Abstractor)
+// 自動相容：內建系統、CSV 大批匯入、手動新增編輯、未來未知的自訂欄位結構
+// =========================================================================
+window.extractAbstractPoemSections = function (poem, customData, activeContainer) {
+    if (!poem && !customData) return { meta: [], lines: [], sections: [] };
+    const src = Object.assign({}, poem || {}, customData || {});
+
+    // -----------------------------------------
+    // A. 抽象提取：副標題 / 籤詩屬性 (吉凶、干支、卦象)
+    // -----------------------------------------
+    const meta = [];
+    if (src.name) meta.push(src.name);
+    if (src.level) meta.push(src.level);
+    if (src.ganzhi) meta.push(src.ganzhi);
+    if (src.bua) meta.push(`卦象：${src.bua}`);
+    if (src.elemDir) meta.push(src.elemDir);
+
+    // -----------------------------------------
+    // B. 抽象提取：詩句本體 (相容多版本、陣列、單字串、l1~l4)
+    // -----------------------------------------
+    let lines = [];
+    let activeKingIntents = null;
+
+    if (src.isKing && Array.isArray(src.versions)) {
+        // 情境 1：多版本陣列結構 (如六十甲子籤王)
+        let activeVerIdx = src.versions.length - 1;
+        if (activeContainer) {
+            const btns = activeContainer.querySelectorAll('.king-btn');
+            btns.forEach((b, idx) => {
+                if (b.style.background.includes('0, 0, 0') || b.style.background === '#000' || b.style.background === 'rgb(0, 0, 0)') {
+                    activeVerIdx = idx;
+                }
+            });
+        }
+        const kv = src.versions[activeVerIdx] || src.versions[0];
+        if (kv) {
+            lines = [kv.l1, kv.l2, kv.l3, kv.l4].filter(Boolean);
+            if (kv.intents) activeKingIntents = kv.intents;
+        }
+    } else if (Array.isArray(src.v1) && Array.isArray(src.v2)) {
+        // 情境 2：雙版本切換結構 (如觀音百首)
+        const toggleBtn = activeContainer ? activeContainer.querySelector('.gy-toggle-btn') : null;
+        const currentVer = (toggleBtn && toggleBtn.dataset.version === 'v2') ? src.v2 : src.v1;
+        lines = currentVer.filter(Boolean);
+    } else if (src.l1 || src.l2 || src.l3 || src.l4) {
+        // 情境 3：標準四句結構 (含 CSV 匯入與手動編輯，支援只有 2 句或 3 句的特殊籤)
+        lines = [src.l1, src.l2, src.l3, src.l4].map(s => (s || '').trim()).filter(Boolean);
+    } else if (typeof src.poem === 'string' && src.poem.trim()) {
+        // 情境 4：單一字串詩句
+        lines = [src.poem.trim()];
+    } else if (Array.isArray(src.lines)) {
+        // 情境 5：自訂 lines 陣列
+        lines = src.lines.filter(Boolean);
+    }
+
+    // -----------------------------------------
+    // C. 抽象提取：聖意 / 解曰 / 自訂擴充欄位
+    // -----------------------------------------
+    const sections = [];
+
+    // 內部小工具：格式化單一解曰項目 (自動判斷單行或保留多行縮排)
+    const formatIntentItem = (typeStr, textStr) => {
+        const cleanType = String(typeStr || '').trim();
+        const cleanText = String(textStr || '').trim();
+        if (!cleanType && !cleanText) return '';
+
+        // 若使用者在 CSV 或編輯器裡有按 Enter 換行 (多行長文)，保留換行讓排版更漂亮
+        if (cleanText.includes('\n')) {
+            const indented = cleanText.split('\n').map(l => l.trim()).filter(Boolean).join('\n   ');
+            return cleanType ? `▪ 【${cleanType}】\n   ${indented}` : `▪ ${indented}`;
+        }
+        return cleanType ? `▪ ${cleanType}：${cleanText}` : `▪ ${cleanText}`;
+    };
+
+    // 1. 處理結構化陣列 intents (涵蓋：CSV 匯入、手動新增編輯、媽祖、受旨宮、孔明、玄天上帝、六十甲子)
+    const rawIntents = activeKingIntents || src.intents;
+    if (Array.isArray(rawIntents) && rawIntents.length > 0) {
+        // 智慧判斷：如果陣列裡只有 1 筆，且類型名稱本身就是大標題 (例如「聖意」、「解曰」、「解釋」)，直接當作段落標題，避免印出重複的兩層標題！
+        if (rawIntents.length === 1) {
+            const singleType = (rawIntents[0].type || rawIntents[0].k || '聖意 / 解曰').trim();
+            const singleText = (rawIntents[0].text || rawIntents[0].v || '').trim();
+            if (singleText) {
+                sections.push({ title: singleType, body: singleText });
+            }
+        } else {
+            const itemsText = rawIntents.map(item => {
+                if (typeof item === 'string') return `▪ ${item.trim()}`;
+                const k = item.type || item.k || item.title || item.label || '';
+                const v = item.text || item.v || item.value || item.content || '';
+                return formatIntentItem(k, v);
+            }).filter(Boolean).join('\n');
+
+            if (itemsText) {
+                sections.push({ title: '聖意 / 解曰', body: itemsText });
+            }
+        }
+    }
+
+    // 2. 建立「已知擴充屬性字典」並依序提取
+    const knownFieldMap = [
+        { key: 'intent',         title: '聖意' },
+        { key: 'meaning',        title: '聖意' },
+        { key: 'jian_intent',    title: '聖意' },
+        { key: 'bao_intent',     title: '詩解' },
+        { key: 'interpretation', title: '解曰' },
+        { key: 'dongpo',         title: '東坡解' },
+        { key: 'translation',    title: '語譯' },
+        { key: 'story',          title: '典故' },
+        { key: 'stories',        title: '典故' },
+        { key: 'english',        title: 'English Translation' }
+    ];
+
+    knownFieldMap.forEach(({ key, title }) => {
+        // 若已有 intents 陣列，且舊版殘留相同的 interpretation，則跳過避免重複
+        if (key === 'interpretation' && Array.isArray(rawIntents) && rawIntents.length > 0) return;
+
+        const val = src[key];
+        if (!val) return;
+
+        if (Array.isArray(val) && val.length > 0) {
+            sections.push({ title, body: val.join('、') });
+        } else if (typeof val === 'string' && val.trim() !== '') {
+            sections.push({ title, body: val.trim() });
+        }
+    });
+
+    // 3. ★ 終極抽象魔法：自動掃描並相容「未來或使用者自訂的未知欄位」！
+    // (只要不是系統保留字，不管使用者在自訂 JSON / JS 外掛裡塞了什麼新欄位，都能自動抓出來顯示)
+    const reservedKeys = new Set([
+        'lot', 'id', 'name', 'level', 'ganzhi', 'bua', 'elemDir',
+        'l1', 'l2', 'l3', 'l4', 'poem', 'lines', 'v1', 'v2', 'isKing', 'versions',
+        'img', 'type', 'val', 'intents',
+        ...knownFieldMap.map(m => m.key)
+    ]);
+
+    Object.keys(src).forEach(key => {
+        if (reservedKeys.has(key)) return;
+        const val = src[key];
+        if (val === null || val === undefined || val === '') return;
+
+        if (typeof val === 'string' && val.trim()) {
+            sections.push({ title: key, body: val.trim() });
+        } else if (Array.isArray(val) && val.length > 0) {
+            const arrStr = val.map(v => {
+                if (typeof v === 'object' && v !== null) {
+                    return formatIntentItem(v.type || v.k || '', v.text || v.v || JSON.stringify(v));
+                }
+                return `▪ ${String(v).trim()}`;
+            }).join('\n');
+            sections.push({ title: key, body: arrStr });
+        } else if (typeof val === 'object') {
+            // 若使用者自訂了一個 Key-Value 物件，例如 { "求財": "大吉", "婚姻": "和合" }
+            const objStr = Object.entries(val)
+                .map(([k, v]) => formatIntentItem(k, v))
+                .filter(Boolean)
+                .join('\n');
+            if (objStr) sections.push({ title: key, body: objStr });
+        }
+    });
+
+    return { meta, lines, sections };
+};
+
+// =========================================================================
+// ★ 2. 複製籤詩純文字主函式 (呼叫上方抽象化解析器 + DOM 智慧備援)
+// =========================================================================
+window.copyPoemText = function (sourceMode = 'collection') {
+    let sys = null;
+    let lotNum = null;
+    let titleName = "";
+    let recContext = null;
+
+    const activeContainer = document.getElementById(
+        sourceMode === 'collection' ? 'collection-view-container' : 'detail-res-container'
+    );
+
+    if (sourceMode === 'collection') {
+        sys = window.currentSystem;
+        lotNum = window.currentLot;
+        let matchedDeity = (window.deities || []).find(x => x && sys && x.sysId === sys.id);
+        titleName = matchedDeity ? (matchedDeity.temple || matchedDeity.name) : (window.currentCollectionTitle || (sys ? sys.name : "籤詩"));
+    } else if (sourceMode === 'record') {
+        const recId = window.currentDetailRecordId || document.getElementById('detail-id')?.value;
+        const r = (window.records || []).find(x => x.id == recId);
+        if (!r) return window.showToast("⚠️ 找不到紀錄資料");
+        recContext = r;
+        lotNum = r.lot;
+
+        let realDeityName = (r.type || "")
+            .replace('(問事)', '').replace('問事', '')
+            .replace('(比較)', '').replace('比較擲筊', '').replace('比較', '')
+            .replace('(一般)', '').replace('一般求籤', '').trim();
+
+        let deity = (window.deities || []).find(d => d.name === realDeityName || d.name === r.type);
+        if (deity && window.poemSystems && window.poemSystems[deity.sysId]) {
+            sys = window.poemSystems[deity.sysId];
+            titleName = `${deity.temple ? deity.temple + ' ' : ''}${deity.name}`;
+        } else if (window.settings && settings.defaultSystem && window.poemSystems[settings.defaultSystem]) {
+            sys = window.poemSystems[settings.defaultSystem];
+            titleName = realDeityName || sys.name;
+        } else {
+            titleName = realDeityName || "求籤紀錄";
+        }
+    }
+
+    const cleanLot = parseInt(lotNum, 10);
+    let lotTitle = (typeof window.formatStickCnLot === 'function' && !isNaN(cleanLot))
+        ? window.formatStickCnLot(cleanLot, false)
+        : (lotNum && lotNum !== '-' ? `第 ${lotNum} 籤` : '');
+
+    if (sys && (sys.id === 'Baishatun_Mazu' || sys.Id === 'Shanbian_Mazu') && (cleanLot === 0 || cleanLot === 101)) {
+        lotTitle = "第一〇一首 (籤王)";
+    }
+
+    let poem = (sys && sys.content) ? (sys.content[cleanLot] || (cleanLot === 101 ? sys.content[0] : null)) : null;
+    let customKey = (sys ? sys.id : '') + '_' + cleanLot;
+    let customData = (window.customPoems && window.customPoems[customKey]) ? window.customPoems[customKey] : null;
+
+    let textLines = [];
+    textLines.push(`【${titleName}】${lotTitle}`.trim());
+
+    // ★ 呼叫抽象化解析器
+    const parsed = window.extractAbstractPoemSections(poem, customData, activeContainer);
+
+    if (parsed.meta.length > 0) {
+        textLines.push(parsed.meta.join(' ｜ '));
+    }
+
+    if (parsed.lines.length > 0) {
+        textLines.push('');
+        textLines.push('【籤詩】');
+        textLines.push(parsed.lines.join('\n'));
+    }
+
+    if (parsed.sections.length > 0) {
+        parsed.sections.forEach(sec => {
+            textLines.push('');
+            textLines.push(`【${sec.title}】`);
+            textLines.push(sec.body);
+        });
+    }
+
+    // ★ 終極防呆備援：萬一使用者是用純自訂 HTML 版型寫死的文字、導致資料庫物件是空的，自動從畫面 DOM 擷取純文字
+    if (parsed.lines.length === 0 && parsed.sections.length === 0 && activeContainer) {
+        const slipEl = activeContainer.querySelector('.fortune-slip') || activeContainer;
+        const domText = (slipEl.innerText || '').trim();
+        if (domText) {
+            textLines.push('');
+            textLines.push(domText);
+        }
+    }
+
+    // 若是從「紀錄明細」複製，附上求籤日期與主旨備註
+    if (sourceMode === 'record' && recContext) {
+        textLines.push('');
+        textLines.push('--------------------');
+        if (recContext.date) textLines.push(`📅 日期：${recContext.date}`);
+        if (recContext.subject) textLines.push(`🙏 主旨：${recContext.subject}`);
+        if (recContext.note) textLines.push(`📝 備註：${recContext.note}`);
+    }
+
+    const finalStr = textLines.join('\n').trim();
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(finalStr).then(() => {
+            if (typeof window.showToast === 'function') window.showToast("✅ 已複製籤詩純文字！");
+        }).catch(() => {
+            fallbackCopyText(finalStr);
+        });
+    } else {
+        fallbackCopyText(finalStr);
+    }
+};
+
+function fallbackCopyText(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+        document.execCommand('copy');
+        if (typeof window.showToast === 'function') window.showToast("✅ 已複製籤詩純文字！");
+    } catch (err) {
+        if (typeof window.showToast === 'function') window.showToast("❌ 複製失敗，請手動選取");
+    }
+    document.body.removeChild(ta);
+}

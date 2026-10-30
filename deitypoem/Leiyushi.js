@@ -230,15 +230,17 @@ window.customPoemTemplates['leiyushi'] = function (poem, cleanLotNum, templeName
 
     // 下面的基本變數不用動
     let numValue = Number(cleanLotNum);
-    let displayLotNum = `第${getCn(numValue)}籤`;
-    if (numValue === 101) displayLotNum = "籤首";
-    if (numValue === 102) displayLotNum = "籤尾";
+let displayLotNum = `第${getCn(numValue)}籤`;
+// ★ 修正：同時支援 0(籤王) 以及 101/201(籤首)、102/202(籤尾)
+if (numValue === 0) displayLotNum = "籤王";
+if (numValue === 101 || numValue === 201) displayLotNum = "籤首";
+if (numValue === 102 || numValue === 202) displayLotNum = "籤尾";
 
-    let actualTempleName = templeName;
-    if (actualTempleName.includes("雷雨師") || actualTempleName.includes("含首尾")) {
-        if (numValue >= 1 && numValue <= 100) actualTempleName = "雷雨師一百籤";
-        else if (numValue === 101 || numValue === 102) actualTempleName = "";
-    }
+let actualTempleName = templeName;
+if (actualTempleName.includes("雷雨師") || actualTempleName.includes("含首尾")) {
+    if (numValue >= 1 && numValue <= 100) actualTempleName = "雷雨師一百籤";
+    else if ([0, 101, 102, 201, 202].includes(numValue)) actualTempleName = "";
+}
 
     let revDisplayLotNum = displayLotNum.split('').reverse().join('');
     let hasSideCol = levelName || ganzhi || story;
