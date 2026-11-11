@@ -9,10 +9,67 @@ window.miniDrawContext = {
     lotNum: 0
 };
 
-window.AppCache = {
-    cupSaint: localStorage.getItem('custom_cup_saint'),
-    cupLaugh: localStorage.getItem('custom_cup_laugh'),
-    cupCovered: localStorage.getItem('custom_cup_covered')
+// ==========================================
+// ★ 圖片非同步快取引擎 (LocalForage + Memory Cache)
+// ==========================================
+window.AppCache = {}; // 記憶體快取，供 UI 高速同步讀取
+
+window.ImageManager = {
+    // 定義系統預設需要的圖片 Key
+    systemKeys: [
+        'custom_door_left', 'custom_door_right',
+        'custom_cup_saint', 'custom_cup_laugh', 'custom_cup_covered',
+        'custom_qiantong_static', 'custom_qiantong_active', 'custom_qiantong_img',
+        'custom_cup_anim_ready', 'custom_cup_anim_throw',
+        'custom_splash_logo_start', 'custom_splash_logo_end'
+    ],
+
+    // 1. 開機預載：將 localforage 的圖片全部撈進 AppCache
+    init: async function () {
+        try {
+            // 撈取系統預設圖片
+            for (let key of this.systemKeys) {
+                const data = await localforage.getItem(key);
+                if (data) window.AppCache[key] = data;
+            }
+
+            // 撈取所有動態神明的大頭貼與背景
+            if (window.AppState && window.AppState.data && window.AppState.data.deities) {
+                for (let d of window.AppState.data.deities) {
+                    const imgKey = `custom_deity_img_${d.id}`;
+                    const imgData = await localforage.getItem(imgKey);
+                    if (imgData) window.AppCache[imgKey] = imgData;
+                }
+            }
+            console.log("🖼️ [ImageManager] 本機圖片快取預載完成");
+        } catch (err) {
+            console.error("🖼️ [ImageManager] 預載失敗:", err);
+        }
+    },
+
+    // 2. 儲存：同時更新記憶體與背景硬碟
+    save: async function (key, base64data) {
+        window.AppCache[key] = base64data; // 畫面立刻生效
+        try {
+            await localforage.setItem(key, base64data); // 背景寫入硬碟
+        } catch (e) {
+            console.error(`圖片 ${key} 儲存至 localforage 失敗`, e);
+            if (typeof showToast === 'function') showToast("❌ 圖片儲存失敗，可能容量已滿");
+        }
+    },
+
+    // 3. 刪除：同時清除記憶體與硬碟
+    remove: async function (key) {
+        delete window.AppCache[key];
+        try {
+            await localforage.removeItem(key);
+        } catch (e) { }
+    },
+
+    // 4. 讀取：供外部統一調用
+    get: function (key) {
+        return window.AppCache[key] || null;
+    }
 };
 
 // ==========================================
@@ -174,7 +231,7 @@ bridgeVariable('isDeityEditMode', () => AppState.editor.isDeityEditMode, val => 
 bridgeVariable('currentDeityTool', () => AppState.editor.currentDeityTool, val => AppState.editor.currentDeityTool = val);
 bridgeVariable('currentMiniDrawTarget', () => AppState.editor.currentMiniDrawTarget, val => AppState.editor.currentMiniDrawTarget = val);
 
-window.saveSettings = function() {
+window.saveSettings = function () {
     // 讀取一般設定
     const chkSkip = document.getElementById('chk-skip');
     if (chkSkip) settings.skip = chkSkip.checked;
@@ -272,7 +329,7 @@ function handleCupUpload(e, key) {
     if (!file) return;
     // 筊杯很小，壓到 100px, 0.6 品質
     compressImage(file, 100, 0.6, (res) => {
-        try { localStorage.setItem('custom_' + key, res); initCupIcons(); }
+        try { window.ImageManager.save('custom_' + key, res); initCupIcons(); }
         catch (err) { showToast("空間不足"); }
     });
 }
@@ -288,14 +345,14 @@ function handleQiantongUpload(e, type) {
         if (file.size > 512000) return showToast("GIF 請小於 500KB");
         const reader = new FileReader();
         reader.onload = function (ev) {
-            try { localStorage.setItem(key, ev.target.result); initCupIcons(); }
+            try { window.ImageManager.save(key, ev.target.result); initCupIcons(); }
             catch (err) { showToast("空間不足"); }
         };
         reader.readAsDataURL(file);
     } else {
         // 靜態圖壓到 250px
         compressImage(file, 250, 0.6, (res) => {
-            try { localStorage.setItem(key, res); initCupIcons(); }
+            try { window.ImageManager.save(key, res); initCupIcons(); }
             catch (err) { showToast("空間不足"); }
         });
     }
@@ -761,7 +818,10 @@ function updateImagePreviews() {
     const setPrev = (id, key, typeText, cssClass) => {
         const el = document.getElementById(id);
         if (!el) return;
-        const customSrc = localStorage.getItem('custom_' + key);
+
+        // ★ 修改：改用 ImageManager
+        const customSrc = window.ImageManager.get('custom_' + key);
+
         if (customSrc) {
             el.innerHTML = `<img src="${customSrc}" class="cup-preview-img">`;
         } else {
@@ -772,28 +832,59 @@ function updateImagePreviews() {
     setPrev('prev-cup-laugh', 'cup_laugh', '笑', 'dot-laugh');
     setPrev('prev-cup-covered', 'cup_covered', '蓋', 'dot-covered');
 
-    // 更新靜止籤筒 (圖1)
-    const qtS = localStorage.getItem('custom_qiantong_static') || QIANTONG_DEFAULT;
-    const elQt = document.getElementById('prev-qt-static');
-    if (elQt) {
-        if (qtS.startsWith('data:')) {
-            elQt.innerHTML = `<img src="${qtS}" class="icon-img">`;
-        } else {
-            // ★關鍵：如果是 Emoji，使用 span 顯示並放大，不要用 img tag
-            elQt.innerHTML = `<span class="icon-emoji" style="font-size:3rem;">${qtS}</span>`;
-        }
+    // ★ 更新靜止籤筒 (圖1 - 完美置中自適應)
+    const qtS = window.ImageManager.get('custom_qiantong_static');
+    const elQtS = document.getElementById('prev-qt-static');
+    if (elQtS) {
+        elQtS.style.margin = '0 auto';
+        elQtS.style.overflow = 'visible'; // 🌟 強制解除 .icon-box 的裁切限制
+        elQtS.innerHTML = qtS
+            ? `<img src="${qtS}" style="height:100%; width:100%; object-fit:contain;">`
+            : `<div style="width:100%; height:100%; display:flex; justify-content:center; align-items:center; overflow:visible;"> <!-- 🌟 改為 visible -->
+                   <div style="transform: scale(0.65); transform-origin: center center; display:flex; justify-content:center; align-items:center;">
+                       ${window.renderCylinderVisualHTML({ isShaking: false, isMini: true })}
+                   </div>
+               </div>`;
     }
 
-    // 更新抽籤籤筒 (圖2)
-    const qtA = localStorage.getItem('custom_qiantong_active');
+    // ★ 更新抽籤籤筒 (圖2 - 搖晃與隨機出籤輪播動畫)
+    const qtA = window.ImageManager.get('custom_qiantong_active');
     const elQtA = document.getElementById('prev-qt-active');
     if (elQtA) {
-        if (qtA && qtA.startsWith('data:')) {
-            elQtA.innerHTML = `<img src="${qtA}" class="icon-img">`;
-        } else if (qtA) {
-            elQtA.innerHTML = `<span class="icon-emoji" style="font-size:3rem;">${qtA}</span>`;
+        elQtA.style.margin = '0 auto';
+        elQtA.style.overflow = 'visible'; // 🌟 強制解除 .icon-box 的裁切限制
+        if (window.previewQtTimer) clearTimeout(window.previewQtTimer);
+
+        if (qtA) {
+            elQtA.innerHTML = `<img src="${qtA}" style="height:100%; width:100%; object-fit:contain;">`;
         } else {
-            elQtA.innerHTML = '';
+            let qtState = 0; // 0: 搖晃中, 1: 已出籤
+            const renderActiveQt = () => {
+                const el = document.getElementById('prev-qt-active');
+                if (!el) return;
+
+                if (qtState === 0) {
+                    el.innerHTML = `
+                        <div style="width:100%; height:100%; display:flex; justify-content:center; align-items:center; overflow:visible;"> <!-- 🌟 改為 visible -->
+                            <div style="transform: scale(0.65); transform-origin: center center; display:flex; justify-content:center; align-items:center;">
+                                ${window.renderCylinderVisualHTML({ isShaking: true, isMini: true })}
+                            </div>
+                        </div>`;
+                    qtState = 1;
+                    window.previewQtTimer = setTimeout(renderActiveQt, 1200);
+                } else {
+                    const randomLot = Math.floor(Math.random() * 60) + 1;
+                    el.innerHTML = `
+                        <div style="width:100%; height:100%; display:flex; justify-content:center; align-items:center; overflow:visible;"> <!-- 🌟 改為 visible -->
+                            <div style="transform: scale(0.65); transform-origin: center center; display:flex; justify-content:center; align-items:center;">
+                                ${window.renderCylinderVisualHTML({ isShaking: false, drawnLot: randomLot, isMini: true })}
+                            </div>
+                        </div>`;
+                    qtState = 0;
+                    window.previewQtTimer = setTimeout(renderActiveQt, 1500);
+                }
+            };
+            renderActiveQt();
         }
     }
 }
@@ -837,7 +928,7 @@ window.openEditRecordModal = function (id) {
         if (isNaN(dObj.getTime())) {
             dObj = new Date(r.id);
         }
-        
+
         // 考量到時區偏移，轉換成正確的本地時間字串
         const tzOffset = dObj.getTimezoneOffset() * 60000;
         const localISOTime = new Date(dObj.getTime() - tzOffset).toISOString().slice(0, 16);
@@ -890,7 +981,7 @@ window.openEditRecordModal = function (id) {
     if (systemPlaceholders.includes(parsedDeityName)) {
         parsedDeityName = 'none';
     }
-    
+
     // 4. 套用到畫面上
     catSel.value = parsedCategory;
 
@@ -904,7 +995,7 @@ window.openEditRecordModal = function (id) {
     // 🌟 新增這裡：控制 Checkbox 顯示與打勾狀態
     const sourceChkContainer = document.getElementById('edit-rec-source-checkbox');
     const isManualChk = document.getElementById('edit-rec-is-manual-chk');
-    
+
     if (sourceChkContainer && isManualChk) {
         // 只有「神明求籤」才顯示這個 Checkbox
         if (parsedCategory === '神明') {
@@ -916,7 +1007,7 @@ window.openEditRecordModal = function (id) {
         }
 
         // 加入連動：如果使用者在修改時切換了紀錄類型，動態隱藏/顯示 Checkbox
-        catSel.onchange = function() {
+        catSel.onchange = function () {
             sourceChkContainer.style.display = (this.value === '神明') ? 'block' : 'none';
         };
     }
@@ -1010,8 +1101,16 @@ window.Database = {
             }
         }
 
-        // 2. 寫入本地硬碟 (單機功能絕對保留)
-        localStorage.setItem('zb_records_v3', JSON.stringify(records));
+        // 2. 寫入本地硬碟 (無上限的 IndexedDB 優先)
+        if (typeof localforage !== 'undefined') {
+            localforage.setItem('zb_records_v3', records).catch(e => console.warn(e));
+        }
+        // 備援機制：攔截 LocalStorage 爆滿錯誤
+        try {
+            localStorage.setItem('zb_records_v3', JSON.stringify(records));
+        } catch (e) {
+            console.warn("LocalStorage 空間已滿，系統已自動切換至 IndexedDB 運作");
+        }
 
         // 3. 呼叫雲端同步 (特徵偵測：如果外部模組有載入才執行)
         if (typeof window.saveToCloud === 'function') {
@@ -1112,17 +1211,17 @@ if (typeof window.sendDataToWebhook !== 'function') {
 // ==========================================
 
 // 1. 處理使用者上傳門神圖片
-window.uploadCustomDoor = function(e, side) {
+window.uploadCustomDoor = function (e, side) {
     const file = e.target.files[0];
     if (!file) return;
 
     // 呼叫現有的壓縮函式 (門神圖片需要清晰一點，所以設定寬度上限 600px，品質 0.8)
     if (typeof compressImage === 'function') {
         if (typeof showToast === 'function') showToast("⏳ 圖片處理中...");
-        
+
         compressImage(file, 600, 0.8, (base64Img) => {
             try {
-                localStorage.setItem('custom_door_' + side, base64Img);
+                window.ImageManager.save('custom_door_' + side, base64Img);
                 if (typeof showToast === 'function') showToast(`✅ ${side === 'left' ? '左' : '右'}門神上傳成功！`);
                 applyCustomDoors(); // 立即套用更新畫面
             } catch (err) {
@@ -1130,20 +1229,20 @@ window.uploadCustomDoor = function(e, side) {
             }
         });
     }
-    
+
     e.target.value = ''; // 清空 input 讓下次選同張圖也能觸發
 };
 
 // 2. 還原為系統預設廟門與開場提詞開啟方式
-window.resetCustomDoors = function() {
+window.resetCustomDoors = function () {
     // 1. 清空圖片的 localStorage
-    localStorage.removeItem('custom_door_left');
-    localStorage.removeItem('custom_door_right');
-    
+    window.ImageManager.remove('custom_door_left');
+    window.ImageManager.remove('custom_door_right');
+
     // 🌟 2. 整合新增：從 settings 物件中刪除提詞設定
     delete settings.showSplashText;
     delete settings.splashText;
-    
+
     // 3. 呼叫你既有的函式，讓它自動存檔並刷新畫面
     if (typeof saveSettings === 'function') saveSettings();
     if (typeof loadSettings === 'function') loadSettings();
@@ -1153,18 +1252,18 @@ window.resetCustomDoors = function() {
 };
 
 // 3. 將圖片動態渲染，並加入「智慧亮度比對、深色同步與完美預載」終極魔法
-window.applyCustomDoors = async function() {
+window.applyCustomDoors = async function () {
     const leftDoor = document.querySelector('.temple-door.left');
     const rightDoor = document.querySelector('.temple-door.right');
     const doorsContainer = document.getElementById('temple-doors-container');
-    
+
     // 取出圖片的邊緣像素顏色 (Promise)
     const getDominantPixel = (imgSrc) => {
         return new Promise((resolve) => {
             if (!imgSrc) return resolve(null);
             const img = new Image();
             img.crossOrigin = "Anonymous";
-            img.onload = function() {
+            img.onload = function () {
                 const cvs = document.createElement('canvas');
                 cvs.width = 10; cvs.height = 10;
                 const ctx = cvs.getContext('2d');
@@ -1177,7 +1276,7 @@ window.applyCustomDoors = async function() {
     };
 
     const getImgSrc = (side) => {
-        const customImg = localStorage.getItem('custom_door_' + side);
+        const customImg = window.ImageManager.get('custom_door_' + side);
         return customImg ? customImg : `./deitypoem/door_god_${side}.jpg`;
     };
 
@@ -1209,23 +1308,23 @@ window.applyCustomDoors = async function() {
     const applyBg = (door, imgSrc, p) => {
         if (!door) return;
         if (!p || !imgSrc) {
-            door.style.backgroundImage = ''; 
+            door.style.backgroundImage = '';
             door.style.backgroundBlendMode = 'normal';
-            door.classList.remove('has-custom-img'); 
+            door.classList.remove('has-custom-img');
             return;
         }
-        
-        let bgLayer = "linear-gradient(135deg, #a71d2a 0%, #7b101d 100%)"; 
-        let blendMode = "normal"; 
-        
+
+        let bgLayer = "linear-gradient(135deg, #a71d2a 0%, #7b101d 100%)";
+        let blendMode = "normal";
+
         // 左門漸層向右下，右門漸層向左下 (維持光影對稱)
         const gradientAngle = door.classList.contains('left') ? "135deg" : "-135deg";
 
-        if (p[3] > 250) { 
+        if (p[3] > 250) {
             if (p[0] > 240 && p[1] > 240 && p[2] > 240) {
                 // 如果是白底，套用乘法混合模式與紅底
                 bgLayer = `linear-gradient(${gradientAngle}, #a71d2a 0%, #7b101d 100%)`;
-                blendMode = "multiply"; 
+                blendMode = "multiply";
             } else {
                 // 如果是其他顏色，直接延展該顏色
                 const bgColor = `rgb(${p[0]}, ${p[1]}, ${p[2]})`;
@@ -1233,9 +1332,9 @@ window.applyCustomDoors = async function() {
                 blendMode = "normal";
             }
         }
-        
+
         door.style.backgroundImage = `url('${imgSrc}'), ${bgLayer}`;
-        door.style.backgroundBlendMode = blendMode; 
+        door.style.backgroundBlendMode = blendMode;
         door.classList.add('has-custom-img');
     };
 

@@ -399,8 +399,7 @@
                     <!-- 區塊 4：文字提示 -->
                     <div class="unified-block-hint">
                         <p id="confirm-status-text" style="color:#888; margin:0;">
-                            目前：<span id="saint-count"
-                                style="color:var(--accent); font-weight:bold; font-size:1.5rem;">0</span> 聖筊
+                            目前：<span style="color:var(--accent); font-weight:bold; font-size:1.5rem;"><span id="saint-count">0</span>/<span id="saint-target-display">3</span></span> 聖筊
                         </p>
                         <p id="confirm-instruction" class="instruction-text" style="font-size:0.9rem; margin:0;">
                             請擲筊確認 (需連續 <span id="req-saint">3</span> 聖筊)
@@ -712,7 +711,7 @@
                 <div class="grid-menu settings-compact-grid">
 
                     <div class="menu-card" onclick="goTo('settings-normal')">
-                        <span>📜</span>
+                        <span>🎋</span>
                         <h3>一般求籤設定</h3>
                         <div style="font-size:0.8rem;">規則與模式</div>
                     </div>
@@ -834,7 +833,8 @@
                                     <input type="checkbox" id="chk-show-splash-text"
                                         onchange="window.saveSettings(); window.loadSettings();"> 顯示
                                 </label>
-                                <input type="text" id="input-splash-text" placeholder="預設：誠心準備中..." maxlength="12"
+                                <!--//原本：placeholder="預設：誠心準備中......"-->
+                                <input type="text" id="input-splash-text" placeholder="預設：" maxlength="12"
                                     onchange="window.saveSettings(); window.loadSettings();"
                                     style="flex:1; padding:6px 8px; border-radius:5px; border:1px solid #333; background:#222; color:#fff; font-size:0.85rem;">
                             </div>
@@ -1209,7 +1209,8 @@ function doPost(e) {
     var payload = JSON.parse(e.postData.contents);
     var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Backup") || SpreadsheetApp.getActiveSpreadsheet().insertSheet("Backup");
     if (payload.action === 'upload') {
-      sheet.getRange("A1").setValue(JSON.stringify(payload.data));
+      // 改為逐列附加紀錄，避免單一儲存格字元上限爆掉
+sheet.appendRow([payload.timestamp, payload.app_source, payload.action, JSON.stringify(payload.data)]);
       return ContentService.createTextOutput(JSON.stringify({success: true, message: "備份成功"})).setMimeType(ContentService.MimeType.JSON);
     }
   } catch(err) {

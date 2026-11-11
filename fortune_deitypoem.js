@@ -589,7 +589,7 @@ window.getDeityIconHtml = function (deityId) {
     const fallbackHtml = `<div style="font-size:2rem; margin-bottom:5px;">${defaultEmoji}</div>`;
 
     // 2. 檢查本地自訂上傳的照片
-    const customImg = localStorage.getItem(`custom_deity_img_${deityId}`);
+    const customImg = window.ImageManager.get(`custom_deity_img_${deityId}`);
     if (customImg) {
         return `<div class="icon-wrapper">
                     <img src="${customImg}" 
@@ -636,7 +636,7 @@ window.downloadAndCacheCloudImage = async function (deityId, url) {
         reader.onloadend = function () {
             const base64data = reader.result;
             try {
-                localStorage.setItem(`custom_deity_img_${deityId}`, base64data);
+                window.ImageManager.save(`custom_deity_img_${deityId}`, base64data);
             } catch (e) { console.warn("圖片太大，LocalStorage 存不下"); }
 
             const targetEl = document.getElementById(`cloud-img-target-${deityId}`);
@@ -1202,8 +1202,8 @@ async function saveDeity() {
 //  抽籤時讀取神明籤筒  //
 function getCurrentQtImages() {
     // 1. 讀取系統預設 (System Defaults)
-    let s = localStorage.getItem('custom_qiantong_static');
-    let a = localStorage.getItem('custom_qiantong_active');
+    let s = window.ImageManager.get('custom_qiantong_static');
+    let a = window.ImageManager.get('custom_qiantong_active');
 
     // 互補邏輯：如果只設定了一張，另一張也用一樣的
     if (s && !a) a = s;

@@ -1,4 +1,31 @@
 // ==========================================
+// ★ 全域筊杯元件庫 (fortune_engine.js 最上方)
+// ==========================================
+// 預備狀態（大畫面/設定預覽/小視窗）：雙手捧著陰陽雙筊，同步懸浮呼吸
+window.DEFAULT_CUP_READY_HTML = `
+    <div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center;">
+        <span class="tiny-cup-wrapper" style="width: 100%; height: 100%; max-width: 90px; max-height: 90px; animation: tinyCupFloat 2.5s ease-in-out infinite;">
+            <span class="tiny-cup-hands" style="font-size: clamp(2.5rem, 8vw, 4rem); bottom: -2px;">🤲</span>
+            <span class="tiny-cup-bobei" style="top: 4px; transform: scale(clamp(0.9, 3vw, 1.2)); filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.4)) drop-shadow(0 8px 12px rgba(0, 0, 0, 0.8));">
+                <span class="bobei-base bobei-yin" style="transform: rotate(-90deg); flex-shrink: 0; margin: 0 -2px 0 0;"></span>
+                <span class="bobei-base bobei-yang" style="transform: rotate(90deg); flex-shrink: 0; margin: 0 0 0 -2px;"></span>
+            </span>
+        </span>
+    </div>
+`;
+
+// 按鈕專用的微型版筊杯 (雙手捧筊，自帶托起拋出動畫)
+window.TINY_CUP_ICON = `
+    <span class="tiny-cup-wrapper">
+        <span class="tiny-cup-hands">🤲</span>
+        <span class="tiny-cup-bobei">
+            <span class="bobei-base bobei-yin" style="transform: rotate(-90deg);"></span>
+            <span class="bobei-base bobei-yang" style="transform: rotate(90deg);"></span>
+        </span>
+    </span>
+`;
+
+// ==========================================
 // ★ 修正版：全域籤號文字轉換器 (改用 籤王0、籤首201、籤尾202)
 // ==========================================
 window.formatLotName = function (num) {
@@ -47,6 +74,30 @@ window.createScatteredBobeiHTML = function (res) {
             <div class="cup-badge-delayed">
                 ${rightBadgeContent}
                 <span class="cup-res-label-text" style="white-space:nowrap;">${res.text}</span>
+            </div>
+        </div>
+    `;
+};
+
+// ==========================================
+// ★ 空中連續翻滾洗牌產生器 (加入沙盒防破圖機制)
+// ==========================================
+window.createTossingBobeiHTML = function (scaleSize = 1) {
+    const faces = Math.random() > 0.5 ? ['bobei-yin', 'bobei-yang'] : ['bobei-yang', 'bobei-yin'];
+    const x1 = Math.floor(Math.random() * 11) + 2;
+    const y1 = Math.floor(Math.random() * 20) + 6;
+    const rot1 = Math.floor(Math.random() * 360);
+    const x2 = Math.floor(Math.random() * 11) + 52;
+    const y2 = Math.floor(Math.random() * 20) + 14;
+    const rot2 = Math.floor(Math.random() * 360);
+
+    return `
+        <div style="width:100%; height:100%; overflow:hidden; display:flex; justify-content:center; align-items:center;">
+            <div class="cup-drop-stage" style="transform: scale(${scaleSize}); transform-origin: center center;">
+                <div class="bobei-arena">
+                    <div class="bobei-piece ${faces[0]}" style="--tx:${x1}px; --ty:${y1}px; --rot:${rot1}deg; animation-duration: 0.35s;"></div>
+                    <div class="bobei-piece ${faces[1]}" style="--tx:${x2}px; --ty:${y2}px; --rot:${rot2}deg; animation-duration: 0.35s;"></div>
+                </div>
             </div>
         </div>
     `;
@@ -248,6 +299,11 @@ function initAll() {
     if (typeof window.initDatabaseEngine === 'function') {
         window.initDatabaseEngine();
     }
+    const permBtn2 = document.getElementById('btn-mini-perm-toss');
+    if (permBtn2 && permBtn2.innerHTML.includes('🙏')) permBtn2.innerHTML = `${window.TINY_CUP_ICON} 誠心擲筊請示`;
+
+    const permBtn3 = document.getElementById('btn-mini-toss');
+    if (permBtn3 && permBtn3.innerHTML.includes('🙏')) permBtn3.innerHTML = `${window.TINY_CUP_ICON} 擲筊請示`;
 }
 
 /* ---------------------------------------------------- */
@@ -842,6 +898,8 @@ function initQiuqian() {
     window.sessionDrawnLots = null; // 每次進入求籤，重置已抽過的籤筒陣列
     window.isFortuneSaved = false;
 
+    window.permAskCount = 1;  // 初始化請示次數為 1
+
     // ★ 新增：每次重新求籤時清空問事內容輸入框
     const step1Sub = document.getElementById('input-qiuqian-subject-step1');
     if (step1Sub) step1Sub.value = "";
@@ -951,9 +1009,12 @@ function initQiuqian() {
 
         // 重置右側 APP 擲筊按鈕
         if (btnPerm) {
-            btnPerm.innerText = "🙏 擲筊請示";
+            btnPerm.innerHTML = `${window.TINY_CUP_ICON} 擲筊請示`;
             btnPerm.style.display = 'block';
             btnPerm.disabled = false;
+            btnPerm.style.background = ""; // 🌟 加上這行清空背景色
+            btnPerm.style.color = "";      // 🌟 加上這行清空文字顏色
+            btnPerm.classList.remove('cup-empty');
             btnPerm.onclick = window.askPermission;
         }
     }
@@ -1030,6 +1091,30 @@ window.manualPermClick = function () {
 window.askPermission = function () {
     const btn = document.getElementById('btn-perm');
 
+    // 🌟 1. 如果按鈕顯示為「重新請示」，則只重置按鈕與畫面狀態，不立即擲筊
+    if (btn && btn.innerHTML.includes("重新請示")) {
+        btn.innerHTML = `${window.TINY_CUP_ICON} 擲筊請示`;
+        btn.style.background = ""; // 恢復預設紅色
+        btn.style.color = "";
+        
+        // 🌟 淨空上方的黃色筊杯框框，恢復成原始的「準備請示」狀態 (若想完全留空，可改為 text: '')
+        if (typeof updateCupDisplay === 'function') {
+            updateCupDisplay('perm-cup', { text: '準備請示', type: -1 }); 
+        }
+
+        // 🌟 將提示文字改為指定的內容，並停止閃爍
+        const msgEl = document.getElementById('perm-reject-msg');
+        if (msgEl) {
+            msgEl.style.display = 'block';
+            msgEl.innerText = "確認說明完畢後，再擲筊請示。";
+            msgEl.classList.remove('rejection-blink');
+        }
+        return; // 🛑 直接返回，等待使用者再次點擊才擲筊
+    }
+
+    // ★ 核心防護：防連點機制
+    if (window.isThrowingCup) return;
+
     // 交給核心引擎擲筊
     window.executeThrowCupWrapper(btn, (res) => {
         if (typeof updateCupDisplay === 'function') updateCupDisplay('perm-cup', res);
@@ -1050,22 +1135,28 @@ window.askPermission = function () {
 
             return true;
         } else { // ❌ 笑筊 或 蓋筊
+            // 🌟 1. 失敗時，請示次數 + 1
+            window.permAskCount++; 
+
             const msgEl = document.getElementById('perm-reject-msg');
             if (msgEl) {
-                msgEl.style.display = 'block'; // 確保元素可見
-
-                // 🌟 加入呼吸燈特效邏輯 🌟
-                // 1. 先拔掉可能殘留的動畫 class
+                // 🌟 2. 將次數附加在提示文字後方
+                msgEl.innerText = `請向神明詳細說明，稍後再請示。(已請示 ${window.permAskCount - 1} 次)`;
+                msgEl.style.display = 'block'; 
                 msgEl.classList.remove('rejection-blink');
-
-                // 2. 這是魔法！強制瀏覽器重新計算佈局 (Trigger Reflow)，這樣動畫才會重置
                 void msgEl.offsetWidth;
-
-                // 3. 重新掛上動畫 class，開始閃爍！
                 msgEl.classList.add('rejection-blink');
             }
 
-            // 讓核心引擎自然解除鎖定，讓使用者可以再次點擊
+            if (btn) {
+                btn.disabled = false;
+                btn.classList.remove('is-tossing');
+                // 🌟 3. 把按鈕文字動態加上次數
+                btn.innerHTML = `🔄 第 ${window.permAskCount} 次請示`;
+                btn.style.background = "#ffb300";
+                btn.style.color = "#000";
+            }
+
             return false;
         }
     });
@@ -1100,7 +1191,7 @@ function getCupResult() {
     }
 
     // 檢查是否有使用者自訂的上傳圖片
-    let imgSrc = localStorage.getItem(key);
+    let imgSrc = window.ImageManager.get(key);
 
     // ★ 核心攔截：如果設定為 'text'，強制把圖片設為 null，系統就會乖乖畫陰刻文字！
     if (settings.cupDisplayMode === 'text') {
@@ -1296,7 +1387,7 @@ window.handleCupAnimUpload = function (e, type) {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = function (ev) {
-        localStorage.setItem(`custom_cup_anim_${type}`, ev.target.result);
+        window.ImageManager.save(`custom_cup_anim_${type}`, ev.target.result);
         if (typeof renderCupAnimPreviews === 'function') renderCupAnimPreviews();
     };
     reader.readAsDataURL(file);
@@ -1304,18 +1395,38 @@ window.handleCupAnimUpload = function (e, type) {
 
 // 3. 渲染預覽圖
 window.renderCupAnimPreviews = function () {
-    const rImg = localStorage.getItem('custom_cup_anim_ready');
-    const tImg = localStorage.getItem('custom_cup_anim_throw');
+    const rImg = window.ImageManager.get('custom_cup_anim_ready');
+    const tImg = window.ImageManager.get('custom_cup_anim_throw');
     const rEl = document.getElementById('prev-cup-anim-ready');
     const tEl = document.getElementById('prev-cup-anim-throw');
-    if (rEl) rEl.innerHTML = rImg ? `<img src="${rImg}" style="height:100%;object-fit:contain;">` : '🙏';
-    if (tEl) tEl.innerHTML = tImg ? `<img src="${tImg}" style="height:100%;object-fit:contain;">` : '🌗';
+
+    if (rEl) rEl.innerHTML = rImg ? `<img src="${rImg}" style="height:100%;object-fit:contain;">` : `<div style="font-size:32px; padding-top:6px;">${window.DEFAULT_CUP_READY_HTML}</div>`;
+
+    if (tEl) {
+        if (window.previewTossTimer) clearInterval(window.previewTossTimer);
+        
+        if (tImg) {
+            tEl.innerHTML = `<img src="${tImg}" style="height:100%;object-fit:contain;">`;
+        } else {
+            const renderPreviewToss = () => {
+                tEl.innerHTML = `
+                    <!-- 🌟 加上 --start-x: 0px; --start-y: -100px; 讓筊杯從上方掉落！ -->
+                    <div style="width:100%; height:100%; display:flex; justify-content:center; align-items:center; overflow:visible; --start-x: 0px; --start-y: -100px;">
+                        <div style="transform: scale(0.9); transform-origin: center center;">
+                            ${window.createTossingBobeiHTML(1.0).replace(/overflow:hidden/g, 'overflow:visible')}
+                        </div>
+                    </div>`;
+            };
+            renderPreviewToss();
+            window.previewTossTimer = setInterval(renderPreviewToss, 500);
+        }
+    }
 };
 
 window.resetCupAnimImages = function () {
     if (confirm('確定清除自訂的擲筊動畫圖片嗎？')) {
-        localStorage.removeItem('custom_cup_anim_ready');
-        localStorage.removeItem('custom_cup_anim_throw');
+        window.ImageManager.remove('custom_cup_anim_ready');
+        window.ImageManager.remove('custom_cup_anim_throw');
         if (typeof renderCupAnimPreviews === 'function') renderCupAnimPreviews();
     }
 };
@@ -1325,9 +1436,14 @@ window.executeThrowCupWrapper = function (btnElement, logicCallback) {
     // ★ 核心防護：防連點機制
     if (window.isThrowingCup) return;
     window.isThrowingCup = true;
-    if (btnElement) btnElement.disabled = true;
-    const mode = document.getElementById('cup-trigger-mode') ? document.getElementById('cup-trigger-mode').value : (settings.cupTriggerMode || 'click');
 
+    if (btnElement) {
+        btnElement.disabled = true;
+        btnElement.classList.remove('cup-empty'); // 🌟 點擊瞬間清除空手狀態
+        btnElement.classList.add('is-tossing'); // 🌟 鎖定按鈕進入拋出狀態
+    }
+    
+    const mode = document.getElementById('cup-trigger-mode') ? document.getElementById('cup-trigger-mode').value : (settings.cupTriggerMode || 'click');
     const animEnabled = document.getElementById('cup-anim-enabled') ? document.getElementById('cup-anim-enabled').checked : (settings.cupAnimEnabled || false);
     const tReady = parseFloat(document.getElementById('cup-time-ready') ? document.getElementById('cup-time-ready').value : (settings.cupTimeReady || 0.5));
     const tThrow = parseFloat(document.getElementById('cup-time-throw') ? document.getElementById('cup-time-throw').value : (settings.cupTimeThrow || 0.5));
@@ -1348,8 +1464,22 @@ window.executeThrowCupWrapper = function (btnElement, logicCallback) {
     overlay.style.opacity = '1';
     overlay.style.display = 'flex';
 
-    const showScreen = (src, fallback, textHint) => {
-        let content = src ? `<img src="${src}" style="max-width:80vw; max-height:40vh; object-fit:contain; animation: popIn 0.3s;">` : `<div style="font-size:8rem; animation: popIn 0.3s;">${fallback}</div>`;
+    // 🌟 計算按鈕相對於螢幕中心的位置，傳遞給 CSS 變數，讓筊杯精準從手中飛出！
+    if (btnElement) {
+        const rect = btnElement.getBoundingClientRect();
+        const btnCenterX = rect.left + rect.width / 2;
+        const btnCenterY = rect.top + rect.height / 2;
+        const screenCenterX = window.innerWidth / 2;
+        const screenCenterY = window.innerHeight / 2;
+        overlay.style.setProperty('--start-x', `${btnCenterX - screenCenterX}px`);
+        overlay.style.setProperty('--start-y', `${btnCenterY - screenCenterY}px`);
+    } else {
+        overlay.style.removeProperty('--start-x');
+        overlay.style.removeProperty('--start-y');
+    }
+
+    const showScreen = (src, fallbackHtml, textHint) => {
+        let content = src ? `<img src="${src}" style="max-width:80vw; max-height:40vh; object-fit:contain; animation: popIn 0.3s;">` : `<div style="font-size:6rem; animation: popIn 0.3s; display:flex; justify-content:center;">${fallbackHtml}</div>`;
         if (textHint) content += `<div style="color:#fff; font-size:1.5rem; margin-top:20px; font-weight:bold; animation: pulse 1s infinite;">${textHint}</div>`;
         overlay.innerHTML = content;
     };
@@ -1357,14 +1487,29 @@ window.executeThrowCupWrapper = function (btnElement, logicCallback) {
     const finishThrow = () => {
         overlay.style.opacity = '0';
         setTimeout(() => {
-            // ✅ 最佳實踐：徹底從 DOM 樹中移除這個節點，而不是只隱藏它
             if (overlay && overlay.parentNode) {
                 overlay.parentNode.removeChild(overlay);
             }
 
+            // 執行各步驟專屬的邏輯 (由它來決定按鈕是否該隱藏)
             logicCallback(res);
-            if (btnElement) btnElement.disabled = false;
-            window.isThrowingCup = false; // ★ 解除防護
+            
+            if (btnElement) {
+                btnElement.disabled = false;
+                btnElement.classList.remove('is-tossing');
+                
+                // 🌟 核心修正：只要 logicCallback 沒有把按鈕藏起來，就確保它保持顯示！不再自作主張隱藏聖筊。
+                if (btnElement.style.display !== 'none') {
+                    btnElement.style.display = 'block';
+                }
+                btnElement.classList.remove('cup-empty');
+                
+                if (res.type !== 1) {
+                    const parentActionArea = btnElement.closest('#step-3-action-area');
+                    if (parentActionArea) parentActionArea.style.display = 'block';
+                }
+            }
+            window.isThrowingCup = false; 
         }, 200);
     };
 
@@ -1375,14 +1520,23 @@ window.executeThrowCupWrapper = function (btnElement, logicCallback) {
         } else {
             overlay.style.display = 'none';
             logicCallback(res);
-            if (btnElement) btnElement.disabled = false;
-            window.isThrowingCup = false; // ★ 解除防護
+            if (btnElement) {
+                btnElement.disabled = false;
+                btnElement.classList.remove('is-tossing');
+                
+                // 🌟 同步核心修正：無動畫模式下也不強制隱藏！
+                if (btnElement.style.display !== 'none') {
+                    btnElement.style.display = 'block';
+                }
+                btnElement.classList.remove('cup-empty');
+            }
+            window.isThrowingCup = false;
         }
         return;
     }
 
-    const imgReady = localStorage.getItem('custom_cup_anim_ready');
-    const imgThrow = localStorage.getItem('custom_cup_anim_throw');
+    const imgReady = window.ImageManager.get('custom_cup_anim_ready');
+    const imgThrow = window.ImageManager.get('custom_cup_anim_throw');
 
     const phaseResult = () => {
         if (typeof triggerVibration === 'function') triggerVibration(100);
@@ -1402,16 +1556,29 @@ window.executeThrowCupWrapper = function (btnElement, logicCallback) {
 
     const phaseThrow = () => {
         if (typeof triggerVibration === 'function') triggerVibration(50);
-        showScreen(imgThrow, '🌗', '');
-        setTimeout(phaseResult, tThrow * 1000);
+
+        if (imgThrow) {
+            showScreen(imgThrow, '', '');
+        } else {
+            const tossTick = () => {
+                showScreen(null, window.createTossingBobeiHTML(1.3), '');
+            };
+            tossTick();
+            window.activeTossTimer = setInterval(tossTick, 350);
+        }
+
+        setTimeout(() => {
+            if (window.activeTossTimer) clearInterval(window.activeTossTimer);
+            phaseResult();
+        }, tThrow * 1000);
     };
 
     const phaseReady = () => {
         if (mode === 'shake') {
-            showScreen(imgReady, '🙏', '📱 請晃動手機...');
+            showScreen(imgReady, window.DEFAULT_CUP_READY_HTML, '📱 請晃動手機...');
             waitForShake(phaseThrow);
         } else {
-            showScreen(imgReady, '🙏', '');
+            showScreen(imgReady, window.DEFAULT_CUP_READY_HTML, '');
             setTimeout(phaseThrow, tReady * 1000);
         }
     };
@@ -1712,7 +1879,7 @@ window.resetMiniPermission = function () {
     document.getElementById('mini-perm-failed-actions').style.display = 'none';
 
     const cupRes = document.getElementById('mini-perm-cup-res');
-    if (cupRes) cupRes.innerHTML = '<span style="font-size:3.5rem; opacity:0.2;">🙏</span>';
+    if (cupRes) cupRes.innerHTML = `<div style="font-size:4rem; opacity:0.45;">${window.DEFAULT_CUP_READY_HTML}</div>`;
 
     const btn = document.getElementById('btn-mini-perm-toss');
     if (btn) { btn.style.display = 'block'; btn.disabled = false; }

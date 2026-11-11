@@ -19,7 +19,12 @@ window.renderSimpleHistory = function () {
             editBtnHtml = `<button data-html2canvas-ignore="true" onclick="window.openHistoryEditModal('simple', ${i})" style="position:absolute; right:35px; top:10px; background:transparent; border:none; color:#2196F3; font-size:1.1rem; cursor:pointer; padding:0; line-height:1; opacity:0.8;">✏️</button>`;
         }
 
-        let cleanHtml = b.html ? b.html.replace('margin-top:5px;', 'margin-top:0;') : '';
+        let cleanHtml = "";
+        if (b.details && b.details.length > 0) {
+            cleanHtml = `<div class="res-dots-container" style="margin-top:0;">` +
+                b.details.map(v => window.generateCupHtml(v, 24, 12)).join('') +
+                `</div>`;
+        }
         // 🌟 新增解析時間
         let timeHtml = b.time ? `<span style="margin-left:8px; font-weight:normal;">🕒 ${b.time}</span>` : '';
 
@@ -198,7 +203,7 @@ window.renderSimpleCupRows = function () {
                         <div class="res-btn" onclick="setSimpleCupVal(${i}, -1, this)">蓋</div>
                     </div>
                     <div class="row-action-col">
-                        <button class="secondary-btn" id="sim-auto-btn-${i}" style="margin:0; padding:6px 0; font-size:0.8rem; width:100%;" onclick="autoThrowSimpleRow(${i})">🌗擲筊</button>
+                        <button class="secondary-btn" id="sim-auto-btn-${i}" style="margin:0; padding:6px 0; font-size:0.8rem; width:100%; display:flex; align-items:center; justify-content:center;" onclick="autoThrowSimpleRow(${i})">${window.TINY_CUP_ICON} 擲筊</button>
                         <button class="secondary-btn" id="sim-reset-btn-${i}" style="margin:0; padding:6px 0; font-size:0.8rem; width:100%; display:none; border-color:#f44336; color:#f44336;" onclick="resetSimpleCupRow(${i})">↺ 回復</button>
                     </div>
                     <div class="table-result-col" id="sim-row-res-${i}" style="width:40px; border:none; margin:0; padding:0;">-</div>
@@ -289,7 +294,7 @@ window.saveSimpleBlock = function () {
         // 🌟 核心防護：記錄是否為線上賜籤
         const isOnlineDraw = (isPoemActive && isOnline);
 
-        window.simpleSessionHistory.push({ question: finalQuestion, result: summary, details: [...cups], html: visualHtml, isOnlineDraw: isOnlineDraw, time: new Date().toLocaleString() });
+        window.simpleSessionHistory.push({ question: finalQuestion, result: summary, details: [...cups], isOnlineDraw: isOnlineDraw, time: new Date().toLocaleString() });
 
         window.isSimpleActive = true;
         if (document.getElementById('simple-lot-num')) document.getElementById('simple-lot-num').value = '';
@@ -359,7 +364,7 @@ window.saveCompFuBlock = function () {
         // 🌟 核心防護：記錄是否為線上賜籤
         const isOnlineDraw = (isPoemActive && isOnline);
 
-        window.compFuHistory.push({ question: finalQuestion, result: summary, details: [...cups], html: visualHtml, isOnlineDraw: isOnlineDraw, time: new Date().toLocaleString() });
+        window.compFuHistory.push({ question: finalQuestion, result: summary, details: [...cups], isOnlineDraw: isOnlineDraw, time: new Date().toLocaleString() });
 
         if (document.getElementById('comp-fu-lot-num')) document.getElementById('comp-fu-lot-num').value = '';
         if (typeof window.renderCompFuHistory === 'function') window.renderCompFuHistory();
@@ -493,9 +498,9 @@ function runCompareBatch() {
     // 注意最上方的標題也順便加上了 margin 壓縮
     let html = "<h4 style='margin: 0 0 8px 0; font-size:1.05rem;'>結果分析：</h4>";
 
-    const imgSaint = settings.cupDisplayMode === 'text' ? null : localStorage.getItem('custom_cup_saint');
-    const imgLaugh = settings.cupDisplayMode === 'text' ? null : localStorage.getItem('custom_cup_laugh');
-    const imgCovered = settings.cupDisplayMode === 'text' ? null : localStorage.getItem('custom_cup_covered');
+    const imgSaint = settings.cupDisplayMode === 'text' ? null : window.ImageManager.get('custom_cup_saint');
+    const imgLaugh = settings.cupDisplayMode === 'text' ? null : window.ImageManager.get('custom_cup_laugh');
+    const imgCovered = settings.cupDisplayMode === 'text' ? null : window.ImageManager.get('custom_cup_covered');
 
     compareState.options.forEach(optName => {
         let saint = 0; let log = "";
@@ -714,11 +719,10 @@ window.saveDetailFuBlock = function () {
 
     if (!records[recIndex].followUps) records[recIndex].followUps = [];
     records[recIndex].followUps.push({
-        question: qText, 
-        result: summary, 
-        details: [...detailFuTempCups], 
-        html: visualHtml,
-        time: new Date().toLocaleString() // 🌟 補上這個關鍵的時間戳記
+        question: qText,
+        result: summary,
+        details: [...detailFuTempCups],
+        time: new Date().toLocaleString()
     });
 
     window.Database.saveRecord(records[recIndex]);
@@ -800,7 +804,14 @@ window.commitCompareWithFu = async function () {
         finalHtml += `<hr style="border-color:#444; margin:15px 0;">`;
         finalHtml += `<h4 style="color:var(--accent); margin-bottom:10px;">後續追問</h4>`;
         compFuHistory.forEach((b, i) => {
-            let cleanHtml = b.html ? b.html.replace('margin-top:5px;', 'margin-top:0;') : '';
+            let cleanHtml = "";
+            if (b.details && b.details.length > 0) {
+                cleanHtml = `<div class="res-dots-container" style="margin-top:0;">` +
+                    b.details.map(v => window.generateCupHtml(v, 24, 12)).join('') +
+                    `</div>`;
+            } else if (b.html) {
+                cleanHtml = b.html.replace('margin-top:5px;', 'margin-top:0;'); // 向下相容舊紀錄
+            }
             let timeHtml = b.time ? `<span style="margin-left:8px; font-weight:normal;">🕒 ${b.time}</span>` : ''; // 🌟 新增時間
 
             finalHtml += `
@@ -1039,29 +1050,26 @@ window.adjustNumber = function (inputId, delta, min, max, renderFuncStr) {
 
 // ★ 共用元件：生成筊杯 HTML
 window.generateCupHtml = function (val, size = 24, fontSize = 12) {
-    // 取得模式設定：預設 'css'，可選 'text', 'image'
     const mode = (typeof settings !== 'undefined' && settings.cupDisplayMode) ? settings.cupDisplayMode : 'css';
 
-    // 模式 A：純 CSS 幾何渲染 (最高效能、最美觀)
     if (mode === 'css') {
         const cssW = size;
-        const cssH = size;
+        const cssH = size * 0.5; // 月牙形比例
         let cup1 = '', cup2 = '';
 
-        // 依據 val 判斷杯象並組合 (陽=cup-up, 陰=cup-down)
         if (val === 1) { // 聖筊 (一陰一陽)
-            cup1 = 'cup-down'; cup2 = 'cup-up';
+            cup1 = 'bobei-yin'; cup2 = 'bobei-yang';
         } else if (val === 0) { // 笑筊 (兩陽)
-            cup1 = 'cup-up'; cup2 = 'cup-up';
+            cup1 = 'bobei-yang'; cup2 = 'bobei-yang';
         } else { // 蓋筊 (兩陰)
-            cup1 = 'cup-down'; cup2 = 'cup-down';
+            cup1 = 'bobei-yin'; cup2 = 'bobei-yin';
         }
 
-        // 回傳兩個 CSS 筊杯 (預設加上 popIn 動畫，如果在擲筊中可由外部加上 anim-tossing)
+        // ★ 核心修正：套用高質感的 bobei-base 與陰陽面
         return `
-            <div style="display:inline-flex; align-items:center;">
-                <div class="css-cup ${cup1}" style="width:${cssW}px; height:${cssH}px;"></div>
-                <div class="css-cup ${cup2}" style="width:${cssW}px; height:${cssH}px;"></div>
+            <div style="display:inline-flex; align-items:center; gap: 4px;">
+                <div class="bobei-base ${cup1}" style="width:${cssW}px; height:${cssH}px; transform: rotate(-15deg); margin:0;"></div>
+                <div class="bobei-base ${cup2}" style="width:${cssW}px; height:${cssH}px; transform: rotate(15deg); margin:0;"></div>
             </div>`;
     }
 
@@ -1356,7 +1364,7 @@ window.loadSettings = function () {
 
     // 修正：只要不是明確被設為 false，全新狀態下一律預設為 true (開啟)
     const isShow = settings.showSplashText !== false;
-    const customText = settings.splashText || '誠心準備中...';
+    const customText = settings.splashText || ''; //原本：誠心準備中......
 
     // 1. 更新 3D 廟門的畫面
     if (textContainer && dynamicText) {
@@ -1380,6 +1388,7 @@ window.loadSettings = function () {
     // 7. 更新畫面與預覽
     if (typeof updateImagePreviews === 'function') updateImagePreviews();
     if (typeof renderCupAnimPreviews === 'function') renderCupAnimPreviews();
+    if (typeof renderSplashPreviews === 'function') renderSplashPreviews();
 
     // 載入擲筊結果呈現方式 (預設為 image，以相容之前上傳過的圖片)
     const cupDispMode = settings.cupDisplayMode || 'image';
@@ -1492,16 +1501,16 @@ window.extractAbstractPoemSections = function (poem, customData, activeContainer
 
     // 2. 建立「已知擴充屬性字典」並依序提取
     const knownFieldMap = [
-        { key: 'intent',         title: '聖意' },
-        { key: 'meaning',        title: '聖意' },
-        { key: 'jian_intent',    title: '聖意' },
-        { key: 'bao_intent',     title: '詩解' },
+        { key: 'intent', title: '聖意' },
+        { key: 'meaning', title: '聖意' },
+        { key: 'jian_intent', title: '聖意' },
+        { key: 'bao_intent', title: '詩解' },
         { key: 'interpretation', title: '解曰' },
-        { key: 'dongpo',         title: '東坡解' },
-        { key: 'translation',    title: '語譯' },
-        { key: 'story',          title: '典故' },
-        { key: 'stories',        title: '典故' },
-        { key: 'english',        title: 'English Translation' }
+        { key: 'dongpo', title: '東坡解' },
+        { key: 'translation', title: '語譯' },
+        { key: 'story', title: '典故' },
+        { key: 'stories', title: '典故' },
+        { key: 'english', title: 'English Translation' }
     ];
 
     knownFieldMap.forEach(({ key, title }) => {

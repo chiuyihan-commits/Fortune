@@ -2769,19 +2769,24 @@ img:not([src]) {
     border-radius: 50%;
 }
 
+/* 擬真空中斜拋與落地彈跳動畫 */
 @keyframes bobeiDropIn {
     0% {
+        /* 🌟 改為動態吃 var(--start-x) 與 var(--start-y)，讓筊從按鈕位置飛出 */
         opacity: 0;
-        transform: translate(var(--tx, 0px), -35px) scale(1.65) rotate(calc(var(--rot, 0deg) - 200deg));
+        transform: translate(var(--start-x, 0px), var(--start-y, 150px)) scale(0.2) rotate(calc(var(--rot, 0deg) - 280deg));
     }
-    55% {
+    45% {
+        /* 飛到空中最高點，稍微超過目標位置，並放大產生空間感 */
         opacity: 1;
-        transform: translate(var(--tx, 0px), calc(var(--ty, 0px) + 3px)) scale(0.92) rotate(calc(var(--rot, 0deg) + 18deg));
+        transform: translate(calc(var(--tx, 0px) + 10px), calc(var(--ty, 0px) - 30px)) scale(1.3) rotate(calc(var(--rot, 0deg) - 45deg));
     }
-    80% {
-        transform: translate(var(--tx, 0px), calc(var(--ty, 0px) - 2px)) scale(1.04) rotate(calc(var(--rot, 0deg) - 6deg));
+    75% {
+        /* 落地第一下彈跳擠壓 */
+        transform: translate(var(--tx, 0px), calc(var(--ty, 0px) + 8px)) scale(0.9) rotate(calc(var(--rot, 0deg) + 15deg));
     }
     100% {
+        /* 最終靜止平躺 */
         opacity: 1;
         transform: translate(var(--tx, 0px), var(--ty, 0px)) scale(1) rotate(var(--rot, 0deg));
     }
@@ -3148,4 +3153,128 @@ img:not([src]) {
         transform: rotate(-3deg) scale(1);
         box-shadow: 0 3px 8px rgba(0, 0, 0, 0.7), 0 0 16px rgba(255, 213, 79, 0.65);
     }
+}
+
+/* =================================================================
+   🌟 13. 全新預設筊杯動畫 (滿月對稱浮動 & JS 洗牌沙盒)
+================================================================= */
+/* 基礎形狀 */
+.bobei-base {
+    display: inline-block;
+    width: 34px;
+    height: 17px;
+    border-radius: 20px 20px 4px 4px;
+    box-sizing: border-box;
+    vertical-align: middle;
+    position: relative; 
+}
+
+/* --- 預備狀態：左陰右陽，宛如滿月完美對稱 --- */
+.cup-ready-stage {
+    display: inline-flex;
+    gap: 8px; /* 兩片月亮中間的安全間距 */
+    align-items: center;
+    justify-content: center;
+    animation: cupFloatAnim 2.5s ease-in-out infinite;
+}
+.cup-ready-stage .bobei-base {
+    box-shadow: 0 10px 15px rgba(0,0,0,0.5); /* 強化浮空陰影 */
+}
+
+/* 呼吸浮動特效 */
+@keyframes cupFloatAnim {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+}
+
+/* =================================================================
+   🌟 14. 按鈕專用：雙手捧筊與托起拋出動畫 (空手狀態支援)
+================================================================= */
+.tiny-cup-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;  /* 🌟 1. 調整這裡：外框寬度 (跟著放大) */
+    height: 44px; /* 🌟 2. 調整這裡：外框高度 (跟著放大) */
+    margin-right: 10px;
+    vertical-align: middle;
+    animation: tinyCupFloat 2.5s ease-in-out infinite;
+}
+
+/* 當按鈕處於空手狀態 (.cup-empty) 時，強制停止懸浮，讓手掌穩穩定格在下方 */
+button.cup-empty .tiny-cup-wrapper {
+    animation: none !important;
+}
+
+@keyframes tinyCupFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-3px); }
+}
+
+.tiny-cup-hands {
+    position: absolute;
+    bottom: -2px;
+    font-size: 2.1rem; /* 🌟 3. 調整這裡：手掌大小 (數字越大越 大) */
+    line-height: 1;
+    transition: transform 0.2s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.tiny-cup-bobei {
+    position: absolute;
+    top: 2px;
+    display: inline-flex;
+    gap: 0; 
+    transform: scale(0.65); /* 🌟 4. 調整這裡：筊杯大小 (數字越大越 大) */
+    transform-origin: center bottom;
+    filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.4)) drop-shadow(0 6px 8px rgba(0, 0, 0, 0.8));
+    transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.tiny-cup-bobei .bobei-yin { margin: 0 -1.5px 0 0 !important; }
+.tiny-cup-bobei .bobei-yang { margin: 0 0 0 -1.5px !important; }
+
+/* 🌟 核心修改：當按鈕正在拋出 (.is-tossing) 或是處於擲完後的空手狀態 (.cup-empty) 時，筊杯保持消失 */
+button:active .tiny-cup-wrapper,
+button.is-tossing .tiny-cup-wrapper {
+    animation: none !important; 
+}
+
+button:active .tiny-cup-bobei,
+button.is-tossing .tiny-cup-bobei,
+button.cup-empty .tiny-cup-bobei {
+    opacity: 0;                 /* 筊杯透明度歸零 (消失) */
+    transform: scale(0.65) translateY(-50px); 
+}
+
+button:active .tiny-cup-hands,
+button.is-tossing .tiny-cup-hands {
+    transform: translateY(-2px) scale(1.05); 
+}
+
+/* ===================================================
+   🎯 終極修正：打破 JS 封印，拉開文字與籤筒的距離
+=================================================== */
+/* 1. 直接瞄準 JS 產生的內部 div，用 !important 強制覆蓋寫死的 5px，拉出超大安全距離 */
+#draw-instruction > div, 
+#mini-draw-instruction > div {
+    margin-bottom: 1px !important; 
+}
+
+/* 2. 直接瞄準籤筒本體的場景，縮小 85%，並強制從「頂部」開始縮，讓下方騰出空間 */
+.css-cylinder-scene {
+    transform: scale(0.85) !important;
+    transform-origin: center top !important;
+    margin-top: 10px !important;
+
+/* ===================================================
+   🎯 修正：抽出籤支時籤筒偏移問題
+=================================================== */
+/* 將籤筒場景內的竹籤改為絕對定位，脫離 Flex 排版流，籤筒就不會被往右擠 */
+.css-cylinder-scene .drawn-single-stick {
+    position: absolute !important;
+    left: 50% !important;
+    /* 籤筒中心向左退 (籤筒一半34px + 間距18px + 籤支寬度) 約 -76px */
+    margin-left: -76px !important; 
+    z-index: 10;
 }

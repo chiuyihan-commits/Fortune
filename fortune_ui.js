@@ -453,7 +453,12 @@ window.renderCompFuHistory = function () {
             editBtnHtml = `<button data-html2canvas-ignore="true" onclick="window.openHistoryEditModal('compFu', ${i})" style="position:absolute; right:32px; top:8px; background:transparent; border:none; color:#2196F3; font-size:1.05rem; cursor:pointer; padding:0; line-height:1; opacity:0.8;">✏️</button>`;
         }
 
-        let cleanHtml = b.html ? b.html.replace('margin-top:5px;', 'margin-top:0;') : '';
+        let cleanHtml = "";
+        if (b.details && b.details.length > 0) {
+            cleanHtml = `<div class="res-dots-container" style="margin-top:0;">` +
+                b.details.map(v => window.generateCupHtml(v, 24, 12)).join('') +
+                `</div>`;
+        }
         // 🌟 新增解析時間
         let timeHtml = b.time ? `<span style="margin-left:8px; font-weight:normal;">🕒 ${b.time}</span>` : '';
 
@@ -493,7 +498,7 @@ window.renderCompFuRows = function () {
                     <div class="res-btn" style="padding:4px 0;" onclick="setCompFuCupVal(${i}, -1, this)">蓋</div>
                 </div>
                 <div class="row-action-col" style="width:50px; margin:0 5px;">
-                    <button class="secondary-btn" id="cfu-auto-btn-${i}" style="margin:0; padding:4px 0; font-size:0.75rem; width:100%;" onclick="autoThrowCompFuRow(${i})">🎲</button>
+                    <button class="secondary-btn" id="cfu-auto-btn-${i}" style="margin:0; padding:4px 0; font-size:0.75rem; width:100%; display:flex; align-items:center; justify-content:center;" onclick="autoThrowCompFuRow(${i})">${window.TINY_CUP_ICON} 擲筊</button>
                     <button class="secondary-btn" id="cfu-reset-btn-${i}" style="margin:0; padding:4px 0; font-size:0.75rem; width:100%; display:none; border-color:#f44336; color:#f44336;" onclick="resetCompFuCupRow(${i})">↺</button>
                 </div>
                 <div class="table-result-col" id="cfu-row-res-${i}" style="width:30px; margin:0; padding:0; border:none;">-</div>
@@ -630,7 +635,7 @@ window.downloadAndCacheCloudImage = async function (deityId, url) {
             const base64data = reader.result;
             // 1. 存進 LocalStorage，下次打開 App 瞬間就能讀到 (第一優先)
             try {
-                localStorage.setItem(`custom_deity_img_${deityId}`, base64data);
+                window.ImageManager.save(`custom_deity_img_${deityId}`, base64data);
             } catch (e) { console.warn("圖片太大，LocalStorage 存不下"); }
 
             // 2. 找到畫面上的佔位符號，瞬間替換成圖片
@@ -1125,9 +1130,9 @@ window.enforceCupModeLogic = function (isUserClick = false) {
     if (!radioImage || !radioText) return;
 
     // 檢查有沒有上傳任何圖片
-    const hasSaint = localStorage.getItem('zb_cup_saint');
-    const hasLaugh = localStorage.getItem('zb_cup_laugh');
-    const hasCovered = localStorage.getItem('zb_cup_covered');
+    const hasSaint = window.ImageManager.get('custom_cup_saint');
+    const hasLaugh = window.ImageManager.get('custom_cup_laugh');
+    const hasCovered = window.ImageManager.get('custom_cup_covered');
     const hasAnyImage = hasSaint || hasLaugh || hasCovered;
 
     if (!hasAnyImage) {
@@ -1165,8 +1170,6 @@ if (window.currentDeity && window.currentDeity.emoji && window.currentDeity.emoj
 
 // 全能重置函數：還原「啟動、過場、結果」所有相關設定
 window.resetAllAnimationSettings = async function () {
-    //精美的showConfim視窗，考量程式運作安全性捨去不用
-    //const confirmed = await window.showConfirm(
     const confirmed = confirm(
         "確定要將所有「啟動遮罩」、「擲筊過場」與「結果停留」的圖片與秒數全部還原為預設嗎？",
         "重置所有動畫設定"
@@ -1174,21 +1177,30 @@ window.resetAllAnimationSettings = async function () {
 
     if (!confirmed) return;
 
-    // 1. 定義所有相關的 Storage Keys
-    const keysToRemove = [
-        // 啟動體驗
-        'cfg_show_splash', 'custom_splash_logo', 'cfg_splash_duration',
-        // 擲筊過場
-        'custom_cup_ready', 'custom_cup_throw', 'cup_time_ready', 'cup_time_throw',
-        // 結果停留
-        'cup_result_type', 'cup_time_result_sec'
+    // 1. 透過快取引擎，徹底刪除所有的動畫圖片
+    const imgKeys = [
+        'custom_splash_logo_start',
+        'custom_splash_logo_end',
+        'custom_cup_anim_ready',
+        'custom_cup_anim_throw'
     ];
+    imgKeys.forEach(key => window.ImageManager.remove(key));
 
-    // 2. 執行清理
-    keysToRemove.forEach(key => localStorage.removeItem(key));
+    // 2. 從 settings 物件中，精準拔除相關的秒數與開關設定
+    const propsToRemove = [
+        'splashStart', 'splashEnd', 'showSplashText', 'splashText',
+        'cupTriggerMode', 'cupAnimEnabled', 'cupTimeReady', 'cupTimeThrow',
+        'cupResultType', 'cupTimeResultSec', 'cupDisplayMode'
+    ];
+    propsToRemove.forEach(prop => {
+        delete settings[prop];
+    });
 
-    // 3. 顯示成功訊息並重新載入
-    // 因為這類全域設定涉及多個變數初始化，直接 reload 是最乾淨且保險的做法
+    // 3. 寫回資料庫
+    localStorage.setItem('zb_settings', JSON.stringify(settings));
+    localStorage.removeItem('cfg_show_splash'); // 獨立的開場總開關
+
+    // 4. 顯示成功訊息並重新載入 (確保所有 UI 元件重新讀取預設值)
     if (typeof window.showToast === 'function') {
         window.showToast("🔄 已還原為系統預設值，正在重新載入...");
     }
@@ -1196,6 +1208,32 @@ window.resetAllAnimationSettings = async function () {
     setTimeout(() => {
         location.reload();
     }, 1200);
+};
+
+// 2. 僅還原所有時間設定 (秒數)
+window.resetDurationsOnly = async function () {
+    if (!confirm("確定要將所有啟動停留、動畫播放與結果停留的秒數恢復為預設嗎？")) return;
+
+    // 從 settings 物件中，精準拔除與秒數有關的設定
+    const timeProps = [
+        'splashStart', 'splashEnd',
+        'cupTimeReady', 'cupTimeThrow',
+        'cupTimeResultSec', 'cupResultType'
+    ];
+
+    timeProps.forEach(prop => {
+        delete settings[prop];
+    });
+
+    // 寫回資料庫
+    localStorage.setItem('zb_settings', JSON.stringify(settings));
+
+    if (typeof window.showToast === 'function') {
+        window.showToast("⏱️ 秒數已恢復預設，重新整理中...");
+    }
+
+    // 重新整理頁面以徹底套用變更
+    setTimeout(() => location.reload(), 1000);
 };
 
 // 處理啟動雙階段圖示上傳
@@ -1213,7 +1251,7 @@ window.handleSplashUpload = function (event, phase) {
         const storageKey = phase === 'start' ? 'custom_splash_logo_start' : 'custom_splash_logo_end';
         const previewId = phase === 'start' ? 'prev-splash-start' : 'prev-splash-end';
 
-        localStorage.setItem(storageKey, base64);
+        window.ImageManager.save(storageKey, base64);
         const prev = document.getElementById(previewId);
         if (prev) prev.innerHTML = `<img src="${base64}" style="max-height:100%; max-width:100%; object-fit:contain;">`;
         window.showToast(`✅ ${phase === 'start' ? '掛載中' : '開幕'}圖示已更新`);
@@ -1227,22 +1265,25 @@ window.handleSplashUpload = function (event, phase) {
 // 1. 僅還原所有自訂圖片 (GIF/Base64)
 window.resetAnimImagesOnly = async function () {
     if (!confirm("確定要清除所有自訂的啟動圖示與擲筊動畫圖片嗎？")) return;
-    //精美的showConfim視窗，考量程式運作安全性捨去不用
-    //if (!(await window.showConfirm("確定要清除所有自訂的啟動圖示與擲筊動畫圖片嗎？", "還原圖案預設"))) return;
 
+    // 🌟 修正 1：補上正確的 _anim Key 名稱
     const imgKeys = [
         'custom_splash_logo_start',
         'custom_splash_logo_end',
-        'custom_cup_ready',
-        'custom_cup_throw'
+        'custom_cup_anim_ready',  // 原本漏了 _anim
+        'custom_cup_anim_throw'   // 原本漏了 _anim
     ];
-    imgKeys.forEach(k => localStorage.removeItem(k));
+
+    // 透過我們的新快取引擎清除圖片
+    imgKeys.forEach(k => window.ImageManager.remove(k));
 
     if (typeof window.showToast === 'function') {
-        window.showToast("🖼️ 圖片已恢復預設，重新整理中...");
+        window.showToast("🖼️ 圖片已恢復預設！"); // 拿掉「重新整理中...」的字眼
     }
-    // 重新整理頁面以徹底套用變更
-    setTimeout(() => location.reload(), 1000);
+
+    // 🌟 修正 2：拔除 location.reload()，改用無縫渲染函數瞬間刷新預覽畫面！
+    if (typeof renderCupAnimPreviews === 'function') renderCupAnimPreviews();
+    if (typeof renderSplashPreviews === 'function') renderSplashPreviews();
 };
 
 // 2. 僅還原所有時間設定 (秒數)
@@ -1671,7 +1712,7 @@ window.saveAndGoBack = function () {
 
     // 2. 檢查是否有正在編輯的神明頭像並儲存
     if (window.AppState && AppState.editor.imgData && AppState.ui.currentDeity) {
-        localStorage.setItem(`custom_deity_img_${AppState.ui.currentDeity.id}`, AppState.editor.imgData);
+        window.ImageManager.save(`custom_deity_img_${AppState.ui.currentDeity.id}`, AppState.editor.imgData);
         // 儲存後清除暫存區
         AppState.editor.imgData = null;
     }
@@ -1693,4 +1734,30 @@ window.smartSaveAndBack = function () {
     if (typeof window.goBack === 'function') {
         window.goBack();
     }
+};
+
+window.renderSplashPreviews = function () {
+    const startImg = window.ImageManager.get('custom_splash_logo_start');
+    const endImg = window.ImageManager.get('custom_splash_logo_end');
+
+    const startEl = document.getElementById('prev-splash-start');
+    const endEl = document.getElementById('prev-splash-end');
+
+    // 縮小的閉合門神
+    const defaultStartHtml = `
+        <div style="width: 40px; height: 40px; position: relative; perspective: 200px; display: flex; margin: 0 auto;">
+            <div style="width: 50%; height: 100%; background: linear-gradient(135deg, #a71d2a 0%, #7b101d 100%); border: 1.5px solid #5a0a14; box-sizing: border-box; border-right: none;"></div>
+            <div style="width: 50%; height: 100%; background: linear-gradient(-135deg, #a71d2a 0%, #7b101d 100%); border: 1.5px solid #5a0a14; box-sizing: border-box; border-left: 1px solid #3e070d;"></div>
+        </div>`;
+
+    // 縮小的推開門神 + 發光效果
+    const defaultEndHtml = `
+        <div style="width: 40px; height: 40px; position: relative; perspective: 200px; display: flex; margin: 0 auto;">
+            <div style="width: 50%; height: 100%; background: linear-gradient(135deg, #a71d2a 0%, #7b101d 100%); border: 1.5px solid #5a0a14; box-sizing: border-box; transform: rotateY(-70deg); transform-origin: left;"></div>
+            <div style="width: 50%; height: 100%; background: linear-gradient(-135deg, #a71d2a 0%, #7b101d 100%); border: 1.5px solid #5a0a14; box-sizing: border-box; transform: rotateY(70deg); transform-origin: right;"></div>
+            <div style="position: absolute; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; z-index: -1;">✨</div>
+        </div>`;
+
+    if (startEl) startEl.innerHTML = startImg ? `<img src="${startImg}" style="max-height:100%; max-width:100%; object-fit:contain;">` : defaultStartHtml;
+    if (endEl) endEl.innerHTML = endImg ? `<img src="${endImg}" style="max-height:100%; max-width:100%; object-fit:contain;">` : defaultEndHtml;
 };
